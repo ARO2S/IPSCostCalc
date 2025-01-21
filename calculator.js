@@ -6,30 +6,10 @@ class PricingCalculator {
             platinum: 40
         };
         
-        this.devicePrices = {
-            silver: 6.50,
-            gold: 7.50,
-            platinum: 10
-        };
-        
-        this.emailPrices = {
-            silver: 5,
-            gold: 6.50,
-            platinum: 8
-        };
+        // ... existing price configurations ...
 
         this.serverCost = 22.50; // EDR + SOC * 3
         this.initializeEventListeners();
-    }
-
-    initializeEventListeners() {
-        const form = document.getElementById('pricingForm');
-        const inputs = form.querySelectorAll('input');
-        
-        inputs.forEach(input => {
-            input.addEventListener('change', () => this.calculatePrice());
-            input.addEventListener('input', () => this.calculatePrice());
-        });
     }
 
     calculatePrice() {
@@ -130,4 +110,4 @@ class PricingCalculator {
 // Initialize the calculator when the page loads
 document.addEventListener('DOMContentLoaded', () => {
     new PricingCalculator();
-}); 
+});
