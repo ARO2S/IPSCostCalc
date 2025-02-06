@@ -6,10 +6,30 @@ class PricingCalculator {
             platinum: 40
         };
         
-        // ... existing price configurations ...
+        this.devicePrices = {
+            silver: 6.50,
+            gold: 7.50,
+            platinum: 10
+        };
+        
+        this.emailPrices = {
+            silver: 5,
+            gold: 6.50,
+            platinum: 8
+        };
 
-        this.serverCost = 22.50; // EDR + SOC * 3
+        this.serverCost = 22.50;
         this.initializeEventListeners();
+    }
+
+    initializeEventListeners() {
+        const form = document.getElementById('pricingForm');
+        const inputs = form.querySelectorAll('input');
+        
+        inputs.forEach(input => {
+            input.addEventListener('change', () => this.calculatePrice());
+            input.addEventListener('input', () => this.calculatePrice());
+        });
     }
 
     calculatePrice() {
@@ -25,33 +45,30 @@ class PricingCalculator {
             return;
         }
 
-        // Calculate base cost
+        // Base cost calculation
         let basePrice = this.basePrices[tier] * users;
 
-        // Calculate extra devices cost
+        // Extra resources calculation
         const extraDevices = Math.max(0, devices - users);
         const extraDeviceCost = extraDevices * this.devicePrices[tier];
 
-        // Calculate extra emails cost
         const extraEmails = Math.max(0, emails - users);
         const extraEmailCost = extraEmails * this.emailPrices[tier];
 
-        // Calculate server cost
+        // Add-ons calculation
         const serverCost = server ? this.serverCost : 0;
-
-        // Calculate add-ons
         const darkwebCost = darkweb ? 100 : 0;
         const attackSimCost = attack ? (75 + (emails * 5)) : 0;
 
-        // Calculate total extra costs per seat
+        // Calculate total extra costs and per-seat adjustment
         const totalExtraCost = extraDeviceCost + extraEmailCost + serverCost;
         const extraCostPerSeat = totalExtraCost / users;
 
-        // Update the displayed per-seat price in the tier cards
+        // Update displayed per-seat prices
         this.updateTierPrices(tier, extraCostPerSeat);
 
-        // Calculate subtotal
-        let subtotal = basePrice + totalExtraCost + darkwebCost + attackSimCost;
+        // Calculate subtotal before discount
+        const subtotal = basePrice + totalExtraCost + darkwebCost + attackSimCost;
 
         // Apply volume discount
         let discount = 0;
@@ -63,6 +80,7 @@ class PricingCalculator {
 
         const total = subtotal - discount;
 
+        // Scroll to results
         this.updateDisplay({
             basePrice,
             extraDeviceCost,
@@ -72,8 +90,12 @@ class PricingCalculator {
             attackSimCost,
             discount,
             total,
-            users
+            users,
+            subtotal
         });
+
+        // Smooth scroll to results
+        document.getElementById('results').scrollIntoView({ behavior: 'smooth' });
     }
 
     updateTierPrices(selectedTier, extraCostPerSeat) {
@@ -100,7 +122,8 @@ class PricingCalculator {
             ${pricing.serverCost > 0 ? `<p>Server Protection Cost: $${pricing.serverCost.toFixed(2)}</p>` : ''}
             ${pricing.darkwebCost > 0 ? `<p>DarkWeb Monitoring: $${pricing.darkwebCost.toFixed(2)}</p>` : ''}
             ${pricing.attackSimCost > 0 ? `<p>Attack Simulation: $${pricing.attackSimCost.toFixed(2)}</p>` : ''}
-            ${pricing.discount > 0 ? `<p>Volume Discount: -$${pricing.discount.toFixed(2)}</p>` : ''}
+            <p>Subtotal: $${pricing.subtotal.toFixed(2)}</p>
+            ${pricing.discount > 0 ? `<p>Volume Discount (${pricing.users > 50 ? '10' : '5'}%): -$${pricing.discount.toFixed(2)}</p>` : ''}
         `;
 
         total.innerHTML = `Total Monthly Cost: $${pricing.total.toFixed(2)}`;

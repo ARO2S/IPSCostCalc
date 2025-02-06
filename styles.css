@@ -85,18 +85,15 @@ input[type="number"]:focus {
     background: var(--card-background);
     border-radius: 12px;
     box-shadow: var(--shadow-sm);
-    transition: transform 0.2s, box-shadow 0.2s;
-    border: 1px solid var(--border-color);
+    transition: transform 0.2s, box-shadow 0.2s, border-color 0.2s;
+    border: 2px solid transparent;
+    overflow: hidden;
+    min-height: 400px;
 }
 .tier-card:hover {
     transform: translateY(-4px);
-    box-shadow: var(--shadow-md);
     border-color: var(--primary-color);
-}
-.tier-label {
-    display: block;
-    padding: 2rem;
-    cursor: pointer;
+    box-shadow: 0 0 20px rgba(0, 255, 157, 0.2);
 }
 .tier-card input[type="radio"] {
     position: absolute;
@@ -104,9 +101,24 @@ input[type="number"]:focus {
 }
 .tier-card input[type="radio"]:checked + .tier-label {
     background: var(--selected-background);
-    border: 2px solid var(--primary-color);
-    border-radius: 12px;
-    box-shadow: 0 0 15px rgba(0, 255, 157, 0.15);
+    height: 100%;
+    width: 100%;
+    position: absolute;
+    top: 0;
+    left: 0;
+}
+.tier-card input[type="radio"]:checked ~ .tier-label,
+.tier-card:has(input[type="radio"]:checked) {
+    border-color: var(--primary-color);
+    box-shadow: 0 0 20px rgba(0, 255, 157, 0.2);
+}
+.tier-label {
+    display: block;
+    padding: 2rem;
+    cursor: pointer;
+    position: relative;
+    z-index: 1;
+    height: 100%;
 }
 .tier-label h3 {
     font-size: 1.5rem;
@@ -121,6 +133,7 @@ input[type="number"]:focus {
 }
 .features {
     list-style: none;
+    margin-top: auto;
 }
 .features li {
     margin-bottom: 0.75rem;
