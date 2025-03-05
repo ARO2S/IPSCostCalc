@@ -29,6 +29,17 @@
                     <input type="checkbox" id="server" name="server">
                     <label for="server">Include Server Protection (EDR + SOC)</label>
                 </div>
+                <div class="form-group msp-option">
+                    <input type="checkbox" id="includeMsp" name="includeMsp">
+                    <label for="includeMsp">Include Prepaid MSP Hours</label>
+                    <div class="msp-details" id="mspDetails">
+                        <div class="msp-hours-input">
+                            <label for="mspHours">MSP Hours/Month:</label>
+                            <input type="number" id="mspHours" name="mspHours" min="1" step="0.5">
+                            <span class="recommended-hours" id="recommendedHours"></span>
+                        </div>
+                    </div>
+                </div>
             </div>
             <div class="tier-section">
                 <h2>Security Tier</h2>
@@ -37,26 +48,31 @@
                         <input type="radio" id="silver" name="tier" value="silver" required>
                         <label class="tier-label" for="silver">
                             <h3>Silver</h3>
-                            <div class="price">$20/seat</div>
+                            <div class="price">$25/seat</div>
                             <ul class="features">
-                                <li>Basic Endpoint Protection</li>
-                                <li>Email Filtering</li>
-                                <li>24/7 Basic Support</li>
-                                <li>Quarterly Security Reports</li>
+                                <li>Endpoint Protection</li>
+                                <li>Daily/Weekly Device Updates</li>
+                                <li>Remote Monitoring and Management</li>
+                                <li>2 Hours Fixed Labor Monthly:</li>
+                                <li class="sub-feature">30-min Security Review Meeting</li>
+                                <li class="sub-feature">1.5 Hours for Deliverables & Reports</li>
                             </ul>
                         </label>
                     </div>
                     <div class="tier-card">
                         <input type="radio" id="gold" name="tier" value="gold">
+                        <div class="badge hipaa-badge">HIPAA<br>Standard</div>
                         <label class="tier-label" for="gold">
                             <h3>Gold</h3>
-                            <div class="price">$30/seat</div>
+                            <div class="price">$35/seat</div>
                             <ul class="features">
-                                <li>Advanced Endpoint Protection</li>
-                                <li>Enhanced Email Security</li>
-                                <li>24/7 Priority Support</li>
-                                <li>Monthly Security Reports</li>
-                                <li>Basic Threat Hunting</li>
+                                <li>Everything in Silver plus:</li>
+                                <li>SIEM Integration</li>
+                                <li>Email Backup</li>
+                                <li>2.5 Hours Fixed Labor Monthly:</li>
+                                <li class="sub-feature">30-min Security Review Meeting</li>
+                                <li class="sub-feature">2 Hours for Deliverables & Reports</li>
+                                <li class="sub-feature">(Including SIEM Review)</li>
                             </ul>
                         </label>
                     </div>
@@ -64,28 +80,19 @@
                         <input type="radio" id="platinum" name="tier" value="platinum">
                         <label class="tier-label" for="platinum">
                             <h3>Platinum</h3>
-                            <div class="price">$40/seat</div>
+                            <div class="price">$45/seat</div>
                             <ul class="features">
-                                <li>Enterprise Endpoint Protection</li>
-                                <li>Advanced Email Security</li>
-                                <li>24/7 VIP Support</li>
-                                <li>Weekly Security Reports</li>
-                                <li>Advanced Threat Hunting</li>
-                                <li>Custom Security Policies</li>
+                                <li>Everything in Gold plus:</li>
+                                <li>Attack Simulation</li>
+                                <li>DarkWeb Monitoring</li>
+                                <li>Vulnerability Scanning</li>
+                                <li>3 Hours Fixed Labor Monthly:</li>
+                                <li class="sub-feature">30-min Security Review Meeting</li>
+                                <li class="sub-feature">2.5 Hours for Deliverables & Reports</li>
+                                <li class="sub-feature">(Including SIEM & Vulnerability Reviews)</li>
                             </ul>
                         </label>
                     </div>
-                </div>
-            </div>
-            <div class="addons-section">
-                <h2>Additional Services</h2>
-                <div class="addon-option">
-                    <input type="checkbox" id="darkweb" name="darkweb">
-                    <label for="darkweb">DarkWeb Monitoring ($100/month)</label>
-                </div>
-                <div class="addon-option">
-                    <input type="checkbox" id="attack" name="attack">
-                    <label for="attack">Attack Simulation ($75/month + $5/email)</label>
                 </div>
             </div>
         </form>

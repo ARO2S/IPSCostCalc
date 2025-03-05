@@ -243,4 +243,70 @@ input[type="number"]:focus {
     .tier-label {
         padding: 1.5rem;
     }
+}
+.msp-option {
+    margin-top: 1.5rem;
+    padding: 1rem;
+    background-color: var(--selected-background);
+    border-radius: 8px;
+    border: 1px solid var(--border-color);
+}
+.msp-details {
+    margin-top: 1rem;
+    padding-left: 1.5rem;
+}
+.msp-hours-input {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+}
+.recommended-hours {
+    color: var(--text-secondary);
+    font-size: 0.9rem;
+    font-style: italic;
+}
+#mspHours {
+    width: 100px;
+}
+.sub-feature {
+    font-size: 0.9em;
+    color: var(--text-secondary);
+    margin-left: 1rem;
+}
+.sub-feature::before {
+    content: "•" !important;
+}
+.badge {
+    position: absolute;
+    top: -20px;
+    right: -20px;
+    width: 110px;
+    height: 110px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    font-size: 0.8rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    line-height: 1.4;
+    z-index: 3;
+    text-align: center;
+    padding: 15px;
+    word-spacing: 100vw;
+    background: var(--success-color);
+    color: var(--card-background);
+    box-shadow: var(--shadow-md);
+    border: 3px solid var(--card-background);
+    transform: rotate(15deg);
+}
+.hipaa-badge {
+    background: var(--primary-color);
+    color: var(--background-color);
+}
+.hipaa-badge:hover {
+    transform: rotate(15deg) scale(1.05);
+    transition: transform 0.2s ease;
 } 
