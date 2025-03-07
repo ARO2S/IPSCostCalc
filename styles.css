@@ -329,4 +329,12 @@ input[type="number"]:focus {
 }
 .export-button:active {
     transform: translateY(0);
+}
+.server-disclaimer {
+    font-size: 0.8rem;
+    color: var(--text-secondary);
+    margin-top: 0.5rem;
+    padding-left: 1.5rem;
+    font-style: italic;
+    line-height: 1.3;
 } 
