@@ -58,6 +58,11 @@ class PricingCalculator {
                 this.calculatePrice();
             });
         });
+
+        // Add export button listener
+        document.getElementById('exportPdf').addEventListener('click', () => {
+            this.generatePDF();
+        });
     }
 
     initializeMspSection() {
@@ -235,6 +240,147 @@ class PricingCalculator {
         `;
 
         total.innerHTML = `Total Monthly Cost: $${pricing.total.toFixed(2)}`;
+    }
+
+    generatePDF() {
+        const { jsPDF } = window.jspdf;
+        const doc = new jsPDF();
+        
+        const textColor = '#1a1a1a';
+        let leftColY = 20;  // Y position for left column
+        let rightColY = 20; // Y position for right column
+        const rightColX = 120; // Starting X position for right column
+
+        // Header
+        doc.setFontSize(24);
+        doc.setTextColor(textColor);
+        doc.text('IP Solutions Security Quote', 105, 20, { align: 'center' });
+        
+        // Date
+        doc.setFontSize(10);
+        doc.text(`Generated on: ${new Date().toLocaleDateString()}`, 20, 35);
+
+        // Right Column: Environment Details
+        doc.setFontSize(16);
+        doc.text('Environment Details', rightColX, 45);
+        doc.setFontSize(12);
+        rightColY = 55;
+        const envDetails = [
+            `Users: ${document.getElementById('users').value}`,
+            `Devices: ${document.getElementById('devices').value}`,
+            `Emails: ${document.getElementById('emails').value}`,
+            `Server Protection: ${document.getElementById('server').checked ? 'Yes' : 'No'}`,
+            `MSP Hours: ${document.getElementById('includeMsp').checked ? document.getElementById('mspHours').value : 'None'}`
+        ];
+        envDetails.forEach(detail => {
+            doc.text(detail, rightColX, rightColY);
+            rightColY += 7;
+        });
+
+        // Left Column: Selected Plan and Features
+        leftColY = 45;
+        const selectedTier = document.querySelector('input[name="tier"]:checked').value;
+        doc.setFontSize(16);
+        doc.text(`Selected Plan: ${selectedTier.charAt(0).toUpperCase() + selectedTier.slice(1)}`, 20, leftColY);
+        
+        leftColY += 10;
+        doc.setFontSize(12);
+        doc.text('Included Features:', 20, leftColY);
+        leftColY += 7;
+
+        // Get Silver features
+        const silverFeatures = Array.from(document.querySelector('#silver').closest('.tier-card')
+            .querySelectorAll('.features li:not(.sub-feature)'))
+            .map(li => li.textContent.trim())
+            .filter(text => !text.includes('Fixed Labor'));
+
+        silverFeatures.forEach(feature => {
+            doc.text(`• ${feature}`, 25, leftColY);
+            leftColY += 7;
+        });
+
+        if (selectedTier === 'gold' || selectedTier === 'platinum') {
+            const goldFeatures = Array.from(document.querySelector('#gold').closest('.tier-card')
+                .querySelectorAll('.features li:not(.sub-feature)'))
+                .map(li => li.textContent.trim())
+                .filter(text => !text.includes('Fixed Labor') && !text.includes('Everything in'));
+            
+            goldFeatures.forEach(feature => {
+                doc.text(`• ${feature}`, 25, leftColY);
+                leftColY += 7;
+            });
+        }
+
+        if (selectedTier === 'platinum') {
+            const platinumFeatures = Array.from(document.querySelector('#platinum').closest('.tier-card')
+                .querySelectorAll('.features li:not(.sub-feature)'))
+                .map(li => li.textContent.trim())
+                .filter(text => !text.includes('Fixed Labor') && !text.includes('Everything in'));
+            
+            platinumFeatures.forEach(feature => {
+                doc.text(`• ${feature}`, 25, leftColY);
+                leftColY += 7;
+            });
+        }
+
+        // Fixed Labor Hours Breakdown (continues in left column)
+        leftColY += 5;
+        doc.text('Fixed Monthly Labor Breakdown:', 20, leftColY);
+        leftColY += 7;
+        doc.text('• Security Review Meeting (30 minutes)', 25, leftColY);
+        leftColY += 7;
+        doc.text('• Deliverables & Reports:', 25, leftColY);
+        leftColY += 7;
+        doc.text(`  - Endpoint Security Report`, 30, leftColY);
+        leftColY += 7;
+        doc.text(`  - Asset Inventory Report and Patching Review`, 30, leftColY);
+        leftColY += 7;
+        if (selectedTier === 'gold' || selectedTier === 'platinum') {
+            doc.text(`  - SIEM Analysis & Review`, 30, leftColY);
+            leftColY += 7;
+        }
+        if (selectedTier === 'platinum') {
+            doc.text(`  - Vulnerability Assessment Report`, 30, leftColY);
+            leftColY += 7;
+        }
+
+        // Full Width: Pricing Breakdown
+        const startY = Math.max(leftColY, rightColY) + 10;
+        doc.setFontSize(16);
+        doc.text('Pricing Breakdown', 20, startY);
+        doc.setFontSize(12);
+        let currentY = startY + 8;  // Increased from 5 to add more space after the header
+        
+        const breakdown = document.getElementById('breakdown').innerText;
+        const total = document.getElementById('total').innerText;
+        
+        const breakdownLines = breakdown.split('\n');
+        breakdownLines.forEach(line => {
+            doc.text(line, 20, currentY);
+            currentY += 5;
+        });
+        
+        // Total
+        currentY += 3;
+        doc.setFontSize(14);
+        doc.text(total, 20, currentY);
+
+        // MSP Hours Disclaimer
+        if (document.getElementById('includeMsp').checked) {
+            currentY += 10;
+            doc.setFontSize(10);
+            doc.text('Note: Any additional hours generated through support tickets will be billed at the', 20, currentY);
+            currentY += 5;
+            doc.text('discounted rate of $120/hour.', 20, currentY);
+        }
+
+        // Footer
+        doc.setFontSize(10);
+        doc.text('For questions or to proceed with this quote, please contact IP Solutions.', 105, 270, { align: 'center' });
+        doc.text('Call (574) 259-6000 or email sales@phonedatasupport.net', 105, 277, { align: 'center' });
+
+        // Save the PDF
+        doc.save('IP_Solutions_Security_Quote.pdf');
     }
 }
 
