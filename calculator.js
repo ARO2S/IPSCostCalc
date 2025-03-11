@@ -243,144 +243,210 @@ class PricingCalculator {
     }
 
     generatePDF() {
+        // Make sure jsPDF is properly loaded
+        if (typeof window.jspdf === 'undefined') {
+            console.error('jsPDF library not loaded');
+            return;
+        }
+
         const { jsPDF } = window.jspdf;
         const doc = new jsPDF();
+
+        // Get the logo element from the page
+        const logoImg = document.querySelector('.logo');
         
-        const textColor = '#1a1a1a';
-        let leftColY = 20;  // Y position for left column
-        let rightColY = 20; // Y position for right column
-        const rightColX = 120; // Starting X position for right column
+        if (!logoImg) {
+            console.error('Logo image not found on page');
+            this.generatePDFContent(doc);
+            return;
+        }
 
-        // Header
-        doc.setFontSize(24);
-        doc.setTextColor(textColor);
-        doc.text('IP Solutions Security Quote', 105, 20, { align: 'center' });
-        
-        // Date
-        doc.setFontSize(10);
-        doc.text(`Generated on: ${new Date().toLocaleDateString()}`, 20, 35);
+        // Create new image with crossOrigin set
+        const img = new Image();
+        img.crossOrigin = 'Anonymous';
 
-        // Right Column: Environment Details
-        doc.setFontSize(16);
-        doc.text('Environment Details', rightColX, 45);
-        doc.setFontSize(12);
-        rightColY = 55;
-        const envDetails = [
-            `Users: ${document.getElementById('users').value}`,
-            `Devices: ${document.getElementById('devices').value}`,
-            `Emails: ${document.getElementById('emails').value}`,
-            `Server Protection: ${document.getElementById('server').checked ? 'Yes' : 'No'}`,
-            `MSP Hours: ${document.getElementById('includeMsp').checked ? document.getElementById('mspHours').value : 'None'}`
-        ];
-        envDetails.forEach(detail => {
-            doc.text(detail, rightColX, rightColY);
-            rightColY += 7;
-        });
+        img.onload = () => {
+            try {
+                // Calculate aspect ratio to maintain proportions
+                const imgWidth = 40;  // Width in PDF units (mm)
+                const imgHeight = (img.height * imgWidth) / img.width;
+                
+                // Add image to PDF
+                doc.addImage(img, 'PNG', 20, 10, imgWidth, imgHeight);
+                this.generatePDFContent(doc);
+            } catch (error) {
+                console.error('Error adding logo to PDF:', error);
+                this.generatePDFContent(doc);
+            }
+        };
 
-        // Left Column: Selected Plan and Features
-        leftColY = 45;
-        const selectedTier = document.querySelector('input[name="tier"]:checked').value;
-        doc.setFontSize(16);
-        doc.text(`Selected Plan: ${selectedTier.charAt(0).toUpperCase() + selectedTier.slice(1)}`, 20, leftColY);
-        
-        leftColY += 10;
-        doc.setFontSize(12);
-        doc.text('Included Features:', 20, leftColY);
-        leftColY += 7;
+        img.onerror = () => {
+            console.error('Error loading logo image');
+            this.generatePDFContent(doc);
+        };
 
-        // Get Silver features
-        const silverFeatures = Array.from(document.querySelector('#silver').closest('.tier-card')
-            .querySelectorAll('.features li:not(.sub-feature)'))
-            .map(li => li.textContent.trim())
-            .filter(text => !text.includes('Fixed Labor'));
-
-        silverFeatures.forEach(feature => {
-            doc.text(`• ${feature}`, 25, leftColY);
-            leftColY += 7;
-        });
-
-        if (selectedTier === 'gold' || selectedTier === 'platinum') {
-            const goldFeatures = Array.from(document.querySelector('#gold').closest('.tier-card')
-                .querySelectorAll('.features li:not(.sub-feature)'))
-                .map(li => li.textContent.trim())
-                .filter(text => !text.includes('Fixed Labor') && !text.includes('Everything in'));
-            
-            goldFeatures.forEach(feature => {
-                doc.text(`• ${feature}`, 25, leftColY);
-                leftColY += 7;
+        // Convert the image to a data URL by creating a blob
+        fetch(logoImg.src)
+            .then(response => response.blob())
+            .then(blob => {
+                const url = URL.createObjectURL(blob);
+                img.src = url;
+            })
+            .catch(error => {
+                console.error('Error fetching logo:', error);
+                this.generatePDFContent(doc);
             });
-        }
+    }
 
-        if (selectedTier === 'platinum') {
-            const platinumFeatures = Array.from(document.querySelector('#platinum').closest('.tier-card')
-                .querySelectorAll('.features li:not(.sub-feature)'))
-                .map(li => li.textContent.trim())
-                .filter(text => !text.includes('Fixed Labor') && !text.includes('Everything in'));
+    generatePDFContent(doc) {
+        try {
+            const textColor = '#1a1a1a';
+            let leftColY = 20;  // Y position for left column
+            let rightColY = 20; // Y position for right column
+            const rightColX = 120; // Starting X position for right column
+
+            // Header
+            doc.setFontSize(24);
+            doc.setTextColor(textColor);
+            doc.text('IP Solutions Security Quote', 105, 20, { align: 'center' });
             
-            platinumFeatures.forEach(feature => {
-                doc.text(`• ${feature}`, 25, leftColY);
-                leftColY += 7;
-            });
-        }
-
-        // Fixed Labor Hours Breakdown (continues in left column)
-        leftColY += 5;
-        doc.text('Fixed Monthly Labor Breakdown:', 20, leftColY);
-        leftColY += 7;
-        doc.text('• Security Review Meeting (30 minutes)', 25, leftColY);
-        leftColY += 7;
-        doc.text('• Deliverables & Reports:', 25, leftColY);
-        leftColY += 7;
-        doc.text(`  - Endpoint Security Report`, 30, leftColY);
-        leftColY += 7;
-        doc.text(`  - Asset Inventory Report and Patching Review`, 30, leftColY);
-        leftColY += 7;
-        if (selectedTier === 'gold' || selectedTier === 'platinum') {
-            doc.text(`  - SIEM Analysis & Review`, 30, leftColY);
-            leftColY += 7;
-        }
-        if (selectedTier === 'platinum') {
-            doc.text(`  - Vulnerability Assessment Report`, 30, leftColY);
-            leftColY += 7;
-        }
-
-        // Full Width: Pricing Breakdown
-        const startY = Math.max(leftColY, rightColY) + 10;
-        doc.setFontSize(16);
-        doc.text('Pricing Breakdown', 20, startY);
-        doc.setFontSize(12);
-        let currentY = startY + 8;  // Increased from 5 to add more space after the header
-        
-        const breakdown = document.getElementById('breakdown').innerText;
-        const total = document.getElementById('total').innerText;
-        
-        const breakdownLines = breakdown.split('\n');
-        breakdownLines.forEach(line => {
-            doc.text(line, 20, currentY);
-            currentY += 5;
-        });
-        
-        // Total
-        currentY += 3;
-        doc.setFontSize(14);
-        doc.text(total, 20, currentY);
-
-        // MSP Hours Disclaimer
-        if (document.getElementById('includeMsp').checked) {
-            currentY += 10;
+            // Date
             doc.setFontSize(10);
-            doc.text('Note: Any additional hours generated through support tickets will be billed at the', 20, currentY);
-            currentY += 5;
-            doc.text('discounted rate of $120/hour.', 20, currentY);
+            doc.text(`Generated on: ${new Date().toLocaleDateString()}`, 20, 35);
+
+            // Right Column: Environment Details
+            doc.setFontSize(16);
+            doc.text('Environment Details', rightColX, 45);
+            doc.setFontSize(12);
+            rightColY = 55;
+            const envDetails = [
+                `Users: ${document.getElementById('users').value}`,
+                `Devices: ${document.getElementById('devices').value}`,
+                `Emails: ${document.getElementById('emails').value}`,
+                `Server Protection: ${document.getElementById('server').checked ? 'Yes' : 'No'}`,
+                `MSP Hours: ${document.getElementById('includeMsp').checked ? document.getElementById('mspHours').value : 'None'}`
+            ];
+            envDetails.forEach(detail => {
+                doc.text(detail, rightColX, rightColY);
+                rightColY += 7;
+            });
+
+            // Left Column: Selected Plan and Features
+            leftColY = 45;
+            const selectedTier = document.querySelector('input[name="tier"]:checked')?.value;
+            if (!selectedTier) {
+                throw new Error('No tier selected');
+            }
+            
+            doc.setFontSize(16);
+            doc.text(`Selected Plan: ${selectedTier.charAt(0).toUpperCase() + selectedTier.slice(1)}`, 20, leftColY);
+            
+            leftColY += 10;
+            doc.setFontSize(12);
+            doc.text('Included Features:', 20, leftColY);
+            leftColY += 7;
+
+            // Get Silver features
+            const silverFeatures = Array.from(document.querySelector('#silver').closest('.tier-card')
+                .querySelectorAll('.features li:not(.sub-feature)'))
+                .map(li => li.textContent.trim())
+                .filter(text => !text.includes('Fixed Labor'));
+
+            silverFeatures.forEach(feature => {
+                doc.text(`• ${feature}`, 25, leftColY);
+                leftColY += 7;
+            });
+
+            if (selectedTier === 'gold' || selectedTier === 'platinum') {
+                const goldFeatures = Array.from(document.querySelector('#gold').closest('.tier-card')
+                    .querySelectorAll('.features li:not(.sub-feature)'))
+                    .map(li => li.textContent.trim())
+                    .filter(text => !text.includes('Fixed Labor') && !text.includes('Everything in'));
+                
+                goldFeatures.forEach(feature => {
+                    doc.text(`• ${feature}`, 25, leftColY);
+                    leftColY += 7;
+                });
+            }
+
+            if (selectedTier === 'platinum') {
+                const platinumFeatures = Array.from(document.querySelector('#platinum').closest('.tier-card')
+                    .querySelectorAll('.features li:not(.sub-feature)'))
+                    .map(li => li.textContent.trim())
+                    .filter(text => !text.includes('Fixed Labor') && !text.includes('Everything in'));
+                
+                platinumFeatures.forEach(feature => {
+                    doc.text(`• ${feature}`, 25, leftColY);
+                    leftColY += 7;
+                });
+            }
+
+            // Fixed Labor Hours Breakdown
+            leftColY += 5;
+            doc.text('Fixed Monthly Labor Breakdown:', 20, leftColY);
+            leftColY += 7;
+            doc.text('• Security Review Meeting (30 minutes)', 25, leftColY);
+            leftColY += 7;
+            doc.text('• Deliverables & Reports:', 25, leftColY);
+            leftColY += 7;
+            doc.text(`  - Endpoint Security Report`, 30, leftColY);
+            leftColY += 7;
+            doc.text(`  - Asset Inventory Report and Patching Review`, 30, leftColY);
+            leftColY += 7;
+            if (selectedTier === 'gold' || selectedTier === 'platinum') {
+                doc.text(`  - SIEM Analysis & Review`, 30, leftColY);
+                leftColY += 7;
+            }
+            if (selectedTier === 'platinum') {
+                doc.text(`  - Vulnerability Assessment Report`, 30, leftColY);
+                leftColY += 7;
+            }
+
+            // Pricing Breakdown
+            const startY = Math.max(leftColY, rightColY) + 10;
+            doc.setFontSize(16);
+            doc.text('Pricing Breakdown', 20, startY);
+            doc.setFontSize(12);
+            let currentY = startY + 8;
+            
+            const breakdown = document.getElementById('breakdown')?.innerText;
+            const total = document.getElementById('total')?.innerText;
+            
+            if (breakdown) {
+                const breakdownLines = breakdown.split('\n');
+                breakdownLines.forEach(line => {
+                    doc.text(line, 20, currentY);
+                    currentY += 5;
+                });
+            }
+            
+            // Total
+            if (total) {
+                currentY += 3;
+                doc.setFontSize(14);
+                doc.text(total, 20, currentY);
+            }
+
+            // MSP Hours Disclaimer
+            if (document.getElementById('includeMsp').checked) {
+                currentY += 10;
+                doc.setFontSize(10);
+                doc.text('Note: Any additional hours generated through support tickets will be billed at the', 20, currentY);
+                currentY += 5;
+                doc.text('discounted rate of $120/hour.', 20, currentY);
+            }
+
+            // Footer
+            doc.setFontSize(10);
+            doc.text('For questions or to proceed with this quote, please contact IP Solutions.', 105, 270, { align: 'center' });
+            doc.text('Call (574) 259-6000 or email sales@phonedatasupport.net', 105, 277, { align: 'center' });
+
+            // Save the PDF
+            doc.save('IP_Solutions_Security_Quote.pdf');
+        } catch (error) {
+            console.error('Error generating PDF:', error);
+            alert('There was an error generating the PDF. Please make sure all fields are filled out correctly.');
         }
-
-        // Footer
-        doc.setFontSize(10);
-        doc.text('For questions or to proceed with this quote, please contact IP Solutions.', 105, 270, { align: 'center' });
-        doc.text('Call (574) 259-6000 or email sales@phonedatasupport.net', 105, 277, { align: 'center' });
-
-        // Save the PDF
-        doc.save('IP_Solutions_Security_Quote.pdf');
     }
 }
 
