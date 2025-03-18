@@ -305,20 +305,20 @@ class PricingCalculator {
             let rightColY = 20; // Y position for right column
             const rightColX = 120; // Starting X position for right column
 
-            // Header
+            // Header - moved down and to the right to accommodate logo
             doc.setFontSize(24);
             doc.setTextColor(textColor);
-            doc.text('IP Solutions Security Quote', 105, 20, { align: 'center' });
+            doc.text('IP Solutions Security Quote', 105, 35, { align: 'center' });
             
-            // Date
+            // Date - moved down accordingly
             doc.setFontSize(10);
-            doc.text(`Generated on: ${new Date().toLocaleDateString()}`, 20, 35);
+            doc.text(`Generated on: ${new Date().toLocaleDateString()}`, 20, 45);
 
-            // Right Column: Environment Details
+            // Right Column: Environment Details - adjusted Y positions
             doc.setFontSize(16);
-            doc.text('Environment Details', rightColX, 45);
+            doc.text('Environment Details', rightColX, 55);
             doc.setFontSize(12);
-            rightColY = 55;
+            rightColY = 65;
             const envDetails = [
                 `Users: ${document.getElementById('users').value}`,
                 `Devices: ${document.getElementById('devices').value}`,
