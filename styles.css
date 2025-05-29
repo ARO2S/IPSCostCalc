@@ -100,6 +100,8 @@ input[type="number"]:focus {
     border: 2px solid transparent;
     overflow: hidden;
     min-height: 400px;
+    display: flex;
+    flex-direction: column;
 }
 .tier-card:hover {
     transform: translateY(-4px);
@@ -112,11 +114,6 @@ input[type="number"]:focus {
 }
 .tier-card input[type="radio"]:checked + .tier-label {
     background: var(--selected-background);
-    height: 100%;
-    width: 100%;
-    position: absolute;
-    top: 0;
-    left: 0;
 }
 .tier-card input[type="radio"]:checked ~ .tier-label,
 .tier-card:has(input[type="radio"]:checked) {
@@ -124,12 +121,14 @@ input[type="number"]:focus {
     box-shadow: 0 0 20px rgba(0, 255, 157, 0.2);
 }
 .tier-label {
-    display: block;
+    display: flex;
+    flex-direction: column;
     padding: 2rem;
     cursor: pointer;
     position: relative;
     z-index: 1;
     height: 100%;
+    flex: 1;
 }
 .tier-label h3 {
     font-size: 1.5rem;
