@@ -387,8 +387,18 @@ class PricingCalculator {
         const { jsPDF } = window.jspdf;
         const doc = new jsPDF();
 
-        // Get the logo element from the page
+        // Get the logo element
         const logoImg = document.querySelector('.logo');
+        console.log('Logo element found:', logoImg);
+        console.log('Logo source:', logoImg?.src);
+        console.log('Logo dimensions:', {
+            naturalWidth: logoImg?.naturalWidth,
+            naturalHeight: logoImg?.naturalHeight,
+            displayWidth: logoImg?.width,
+            displayHeight: logoImg?.height,
+            complete: logoImg?.complete,
+            currentSrc: logoImg?.currentSrc
+        });
         
         if (!logoImg) {
             console.error('Logo image not found on page');
@@ -396,41 +406,55 @@ class PricingCalculator {
             return;
         }
 
-        // Create new image with crossOrigin set
-        const img = new Image();
-        img.crossOrigin = 'Anonymous';
+        // Create a canvas to draw the image
+        const canvas = document.createElement('canvas');
+        const ctx = canvas.getContext('2d');
+        
+        // Set canvas size to match the logo's natural size if available, otherwise display size
+        canvas.width = logoImg.naturalWidth || logoImg.width;
+        canvas.height = logoImg.naturalHeight || logoImg.height;
+        
+        console.log('Canvas created with dimensions:', {
+            width: canvas.width,
+            height: canvas.height
+        });
 
-        img.onload = () => {
-            try {
-                // Calculate aspect ratio to maintain proportions
-                const imgWidth = 40;  // Width in PDF units (mm)
-                const imgHeight = (img.height * imgWidth) / img.width;
-                
-                // Add image to PDF
-                doc.addImage(img, 'PNG', 20, 10, imgWidth, imgHeight);
-                this.generatePDFContent(doc);
-            } catch (error) {
-                console.error('Error adding logo to PDF:', error);
-                this.generatePDFContent(doc);
-            }
-        };
-
-        img.onerror = () => {
-            console.error('Error loading logo image');
-            this.generatePDFContent(doc);
-        };
-
-        // Convert the image to a data URL by creating a blob
-        fetch(logoImg.src)
-            .then(response => response.blob())
-            .then(blob => {
-                const url = URL.createObjectURL(blob);
-                img.src = url;
-            })
-            .catch(error => {
-                console.error('Error fetching logo:', error);
-                this.generatePDFContent(doc);
+        try {
+            // Draw the image on the canvas
+            ctx.drawImage(logoImg, 0, 0, canvas.width, canvas.height);
+            console.log('Image drawn to canvas');
+            
+            // Convert canvas to data URL
+            const dataUrl = canvas.toDataURL('image/png');
+            console.log('Data URL generated:', dataUrl.substring(0, 100) + '...');
+            
+            // Calculate aspect ratio to maintain proportions
+            const imgWidth = 40;  // Width in PDF units (mm)
+            const imgHeight = (canvas.height * imgWidth) / canvas.width;
+            
+            console.log('PDF image dimensions:', {
+                width: imgWidth,
+                height: imgHeight
             });
+            
+            // Add image to PDF
+            doc.addImage(dataUrl, 'PNG', 20, 10, imgWidth, imgHeight);
+            console.log('Image added to PDF');
+            
+            // Generate the rest of the PDF content
+            this.generatePDFContent(doc);
+        } catch (error) {
+            console.error('Detailed error adding logo to PDF:', {
+                error: error.message,
+                stack: error.stack,
+                canvasWidth: canvas.width,
+                canvasHeight: canvas.height,
+                imageComplete: logoImg.complete,
+                imageSrc: logoImg.src
+            });
+            // If there's an error with the logo, still generate the PDF without it
+            this.generatePDFContent(doc);
+        }
     }
 
     generatePDFContent(doc) {
@@ -513,7 +537,7 @@ class PricingCalculator {
                 const silverFeatures = Array.from(document.querySelector('#silver').closest('.tier-card')
                     .querySelectorAll('.features li:not(.sub-feature)'))
                     .map(li => li.textContent.trim())
-                    .filter(text => !text.includes('Fixed Labor'));
+                    .filter(text => !text.includes('Fixed Labor') && !text.includes('Choose'));
 
                 silverFeatures.forEach(feature => {
                     doc.text(`• ${feature}`, 25, planY);
@@ -524,7 +548,7 @@ class PricingCalculator {
                     const goldFeatures = Array.from(document.querySelector('#gold').closest('.tier-card')
                         .querySelectorAll('.features li:not(.sub-feature)'))
                         .map(li => li.textContent.trim())
-                        .filter(text => !text.includes('Fixed Labor') && !text.includes('Everything in'));
+                        .filter(text => !text.includes('Fixed Labor') && !text.includes('Everything in') && !text.includes('Choose'));
                     
                     goldFeatures.forEach(feature => {
                         doc.text(`• ${feature}`, 25, planY);
@@ -536,7 +560,7 @@ class PricingCalculator {
                     const platinumFeatures = Array.from(document.querySelector('#platinum').closest('.tier-card')
                         .querySelectorAll('.features li:not(.sub-feature)'))
                         .map(li => li.textContent.trim())
-                        .filter(text => !text.includes('Fixed Labor') && !text.includes('Everything in'));
+                        .filter(text => !text.includes('Fixed Labor') && !text.includes('Everything in') && !text.includes('Choose'));
                     
                     platinumFeatures.forEach(feature => {
                         doc.text(`• ${feature}`, 25, planY);
