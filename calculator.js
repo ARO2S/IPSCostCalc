@@ -601,76 +601,112 @@ class PricingCalculator {
         }
     }
 
-    generateModernPDFContent(doc, logoDataUrl) {
+    // Add watermark helper method
+    addWatermark(doc, logoImg) {
+        if (logoImg) {
+            try {
+                doc.saveGraphicsState();
+                doc.setGState(new doc.GState({ opacity: 0.1 }));
+                
+                // Calculate dimensions while maintaining aspect ratio
+                const maxWidth = 60;
+                const maxHeight = 30;
+                let width = maxWidth;
+                let height = maxHeight;
+                
+                if (logoImg.naturalWidth && logoImg.naturalHeight) {
+                    const ratio = Math.min(maxWidth / logoImg.naturalWidth, maxHeight / logoImg.naturalHeight);
+                    width = logoImg.naturalWidth * ratio;
+                    height = logoImg.naturalHeight * ratio;
+                }
+                
+                doc.addImage(
+                    logoImg, 
+                    'PNG', 
+                    doc.internal.pageSize.width / 2 - width / 2,
+                    doc.internal.pageSize.height / 2 - height / 2,
+                    width,
+                    height
+                );
+                doc.restoreGraphicsState();
+            } catch (error) {
+                console.warn('Failed to add watermark:', error);
+            }
+        }
+    }
+
+    generateModernPDFContent(doc, logoImg) {
         try {
-            // Set up document styling
+            // Set up document styling with simpler color handling
             const colors = {
-                primary: '#00ff9d',
-                primaryDark: '#00cc7d',
-                secondary: '#64748b',
-                text: '#1e293b',
-                lightGray: '#f8fafc',
-                white: '#ffffff'
+                primary: [103, 199, 31],  // Company green
+                text: [30, 41, 59],      // #1e293b
+                white: [255, 255, 255]
             };
 
-            // Helper function to create section headers with gradient
+            // Helper function to create section headers
             const addSectionHeader = (text, y) => {
-                // Create gradient effect with brand colors
-                const gradientHeight = 25;
-                for (let i = 0; i < gradientHeight; i++) {
-                    const alpha = 1 - (i / gradientHeight) * 0.3;
-                    doc.setFillColor(0, 255, 157, alpha);
-                    doc.rect(0, y - 15 + i, doc.internal.pageSize.width, 1, 'F');
-                }
-                doc.setTextColor(colors.text);
+                doc.setFillColor(...colors.primary);
+                doc.rect(0, y - 15, doc.internal.pageSize.width, 2, 'F');
+                doc.setTextColor(...colors.text);
                 doc.setFontSize(18);
                 doc.text(text, 20, y);
             };
 
             // Cover Page
-            // Create gradient background
-            const pageHeight = doc.internal.pageSize.height;
-            for (let i = 0; i < pageHeight; i++) {
-                const alpha = 0.9 - (i / pageHeight) * 0.3;
-                doc.setFillColor(0, 255, 157, alpha);
-                doc.rect(0, i, doc.internal.pageSize.width, 1, 'F');
+            if (logoImg) {
+                try {
+                    // Make the logo larger on the cover page
+                    const maxWidth = 100;  // Increased from 60
+                    const maxHeight = 50;  // Increased from 30
+                    let width = maxWidth;
+                    let height = maxHeight;
+                    
+                    if (logoImg.naturalWidth && logoImg.naturalHeight) {
+                        const ratio = Math.min(maxWidth / logoImg.naturalWidth, maxHeight / logoImg.naturalHeight);
+                        width = logoImg.naturalWidth * ratio;
+                        height = logoImg.naturalHeight * ratio;
+                    }
+                    
+                    // Position logo higher on the page
+                    doc.addImage(
+                        logoImg,
+                        'PNG',
+                        doc.internal.pageSize.width / 2 - width / 2,
+                        20,  // Moved up more
+                        width,
+                        height
+                    );
+                } catch (error) {
+                    console.warn('Failed to add logo:', error);
+                }
             }
-            addWatermark();
 
-            // Add logo
-            if (logoDataUrl) {
-                const imgWidth = 60;
-                const imgHeight = 30;
-                doc.addImage(logoDataUrl, 'PNG', 
-                    (doc.internal.pageSize.width - imgWidth) / 2, 40, 
-                    imgWidth, imgHeight);
-            }
+            // Company name moved down slightly
+            doc.setTextColor(...colors.primary);
+            doc.setFontSize(28);
+            doc.text('IP Solutions, Inc.', doc.internal.pageSize.width / 2, 85, { align: 'center' });
 
-            // Cover page text
-            doc.setTextColor(colors.text);
+            // Cover page text adjusted down slightly
+            doc.setTextColor(...colors.text);
             doc.setFontSize(36);
-            doc.text('Managed Security Services', doc.internal.pageSize.width / 2, 100, { align: 'center' });
+            doc.text('Managed Security Services', doc.internal.pageSize.width / 2, 115, { align: 'center' });
             doc.setFontSize(24);
-            doc.text('Planning Document', doc.internal.pageSize.width / 2, 120, { align: 'center' });
+            doc.text('Planning Document', doc.internal.pageSize.width / 2, 135, { align: 'center' });
             doc.setFontSize(14);
             doc.text(new Date().toLocaleDateString('en-US', { 
                 year: 'numeric', 
                 month: 'long', 
                 day: 'numeric' 
-            }), doc.internal.pageSize.width / 2, 140, { align: 'center' });
+            }), doc.internal.pageSize.width / 2, 155, { align: 'center' });
 
             // Add tagline
             doc.setFontSize(20);
-            doc.text('Secure. Monitor. Respond.', doc.internal.pageSize.width / 2, 180, { align: 'center' });
+            doc.text('Secure. Monitor. Respond.', doc.internal.pageSize.width / 2, 185, { align: 'center' });
 
             // Executive Summary Page
             doc.addPage();
-            addWatermark();
             addSectionHeader('Executive Summary', 30);
-
-            doc.setTextColor(colors.text);
-            doc.setFontSize(14);
-            doc.text('Protect your business from threats with a turnkey security package.', 20, 50);
 
             // Get form values
             const users = document.getElementById('users').value;
@@ -680,185 +716,108 @@ class PricingCalculator {
             const mspHours = document.getElementById('includeMsp').checked ? 
                 document.getElementById('mspHours').value : 'None';
 
-            // Metrics box with icons
-            doc.setFillColor(0, 255, 157, 0.1);
+            // Metrics box
+            doc.setFillColor(245, 245, 245);
             doc.roundedRect(20, 70, 170, 70, 3, 3, 'F');
             doc.setFontSize(12);
+            doc.setTextColor(...colors.text);
 
             const metrics = [
-                { label: 'Users', value: users, icon: '👥' },
-                { label: 'Devices', value: devices, icon: '💻' },
-                { label: 'Emails', value: emails, icon: '✉️' },
-                { label: 'Server Protection', value: server ? 'Yes' : 'No', icon: '🖥️' },
-                { label: 'MSP Hours', value: mspHours, icon: '⏰' }
+                { label: 'Users', value: users },
+                { label: 'Devices', value: devices },
+                { label: 'Emails', value: emails },
+                { label: 'Server Protection', value: server ? 'Yes' : 'No' },
+                { label: 'MSP Hours', value: mspHours }
             ];
 
             let yPos = 85;
             metrics.forEach(metric => {
-                doc.text(`${metric.icon} ${metric.label}: ${metric.value}`, 30, yPos);
+                doc.text(`${metric.label}: ${metric.value}`, 30, yPos);
                 yPos += 10;
             });
 
-            // Why Platinum Section
-            doc.addPage();
-            addWatermark();
-            addSectionHeader('Why Platinum?', 30);
-
-            const features = [
-                {
-                    name: 'Endpoint Protection',
-                    desc: 'Next-gen antivirus & EDR agents on every workstation/device. Automated daily/weekly device updates.',
-                    icon: '🛡️'
-                },
-                {
-                    name: 'Remote Monitoring & Management (RMM)',
-                    desc: '24/7 monitoring for anomalies, patch compliance, and system health. Automated ticket creation for any detected issues.',
-                    icon: '📡'
-                },
-                {
-                    name: 'Security Operations Center (SOC)',
-                    desc: 'Dedicated analysts reviewing SIEM alerts in real time. Regular triage of suspicious events.',
-                    icon: '👥'
-                },
-                {
-                    name: 'Attack Simulation',
-                    desc: 'Phishing tests & social engineering checks to train your users. Quarterly tabletop exercises to validate incident response.',
-                    icon: '🎯'
-                }
-            ];
-
-            yPos = 50;
-            features.forEach(feature => {
-                doc.setFontSize(14);
-                doc.setTextColor(colors.primary);
-                doc.text(`${feature.icon} ${feature.name}`, 20, yPos);
+            // Add MSP Hours explanation if included
+            if (document.getElementById('includeMsp').checked) {
+                yPos += 10;
                 doc.setFontSize(11);
-                doc.setTextColor(colors.text);
-                const lines = doc.splitTextToSize(feature.desc, 170);
-                doc.text(lines, 20, yPos + 7);
-                yPos += 25;
-            });
+                const mspText = `Based on your organization size (${users} users, ${devices} devices), we've included ${mspHours} prepaid MSP hours per month. This allocation is designed to cover anticipated support tickets and routine technical requests from your team. Additional hours, if needed, will be billed at our standard rate of $${this.mspHourlyRate}/hour.`;
+                const mspLines = doc.splitTextToSize(mspText, 160);
+                doc.text(mspLines, 20, yPos);
+                yPos += mspLines.length * 7;
+            }
 
-            // Deliverables Section
-            addSectionHeader('Monthly Deliverables', yPos + 20);
-            yPos += 40;
+            // Features section adjusted down if MSP text was added
+            yPos = Math.max(yPos + 20, 160);
+            // ... rest of features section ...
 
-            const deliverables = [
-                'Endpoint Security Report',
-                'Asset Inventory & Patching Review',
-                'SIEM Analysis & Review',
-                'Vulnerability Assessment Report'
-            ];
-
-            doc.setFontSize(11);
-            deliverables.forEach(deliverable => {
-                doc.text(`• ${deliverable}`, 20, yPos);
-                yPos += 7;
-            });
-
-            // Pricing Breakdown
+            // Pricing table
             doc.addPage();
-            addWatermark();
             addSectionHeader('Pricing Breakdown', 30);
-            yPos = 50;
+            yPos = 60; // Increased from 50 for more margin at top
 
-            // Calculate pricing items
-            const selectedTier = document.querySelector('input[name="tier"]:checked').value;
-            const basePrice = this.basePrices[selectedTier] * devices;
-            const serverCost = server ? this.serverCost : 0;
-            const backupValue = document.querySelector('input[name="serverBackup"]:checked')?.value;
-            const backupCost = (server && backupValue) ? this.backupOptions[backupValue] : 0;
-            const fixedLaborCost = this.fixedLaborHours[selectedTier] * this.mspHourlyRate;
-
-            // Create pricing table with alternating row colors
-            const pricingItems = [
-                { name: 'Base Security', calc: `${devices} devices × $${this.basePrices[selectedTier]}/device`, cost: basePrice },
-                { name: 'Server Protection', calc: server ? `1 server × $${this.serverCost}` : 'N/A', cost: serverCost },
-                { name: 'Server Backup', calc: backupCost ? 'Flat fee' : 'N/A', cost: backupCost },
-                { name: 'Fixed Labor', calc: `${this.fixedLaborHours[selectedTier]} hours × $${this.mspHourlyRate}/hr`, cost: fixedLaborCost }
-            ];
-
-            // Table header
-            doc.setFillColor(0, 255, 157, 0.9);
-            doc.rect(20, yPos, 170, 10, 'F');
-            doc.setTextColor(colors.text);
+            // Table header with more margin on sides
+            doc.setFillColor(...colors.primary);
+            doc.rect(30, yPos, 150, 10, 'F'); // Adjusted width and position
             doc.setFontSize(11);
-            doc.text('Item', 25, yPos + 7);
-            doc.text('Calculation', 80, yPos + 7);
-            doc.text('Monthly Cost', 150, yPos + 7);
+            doc.setTextColor(...colors.white);
+            doc.text('Item', 35, yPos + 7); // Adjusted x position
+            doc.text('Details', 85, yPos + 7); // Adjusted x position
+            doc.text('Monthly Cost', 155, yPos + 7); // Adjusted x position
 
             yPos += 15;
             let total = 0;
             pricingItems.forEach((item, index) => {
+                // Calculate height needed for description
+                const descLines = doc.splitTextToSize(item.desc, 80); // Slightly narrower for margin
+                const itemHeight = Math.max(descLines.length * 5 + 8, 10);
+
                 if (index % 2 === 0) {
-                    doc.setFillColor(0, 255, 157, 0.05);
-                    doc.rect(20, yPos - 5, 170, 10, 'F');
+                    doc.setFillColor(245, 245, 245);
+                    doc.rect(30, yPos - 5, 150, itemHeight, 'F'); // Adjusted width and position
                 }
-                doc.setTextColor(colors.text);
-                doc.text(item.name, 25, yPos);
-                doc.text(item.calc, 80, yPos);
-                doc.text(`$${item.cost.toFixed(2)}`, 150, yPos);
+
+                doc.setTextColor(...colors.text);
+                // Item name
+                doc.setFontSize(11);
+                doc.text(item.name, 35, yPos); // Adjusted x position
+                
+                // Calculation and description
+                doc.setFontSize(10);
+                doc.text(item.calc, 85, yPos); // Adjusted x position
+                doc.setFontSize(9);
+                doc.text(descLines, 85, yPos + 5); // Adjusted x position
+
+                // Cost
+                doc.setFontSize(11);
+                doc.text(`$${item.cost.toFixed(2)}`, 155, yPos); // Adjusted x position
+
                 total += item.cost;
-                yPos += 10;
+                yPos += itemHeight + 2;
             });
 
-            // Total row with gradient
-            const totalRowY = yPos;
-            for (let i = 0; i < 12; i++) {
-                const alpha = 0.9 - (i / 12) * 0.3;
-                doc.setFillColor(0, 255, 157, alpha);
-                doc.rect(20, totalRowY + i, 170, 1, 'F');
-            }
-            doc.setTextColor(colors.text);
+            // Total row with adjusted margins
+            doc.setFillColor(...colors.primary);
+            doc.rect(30, yPos, 150, 12, 'F'); // Adjusted width and position
+            doc.setTextColor(...colors.white);
             doc.setFontSize(12);
-            doc.text('Monthly Total:', 25, totalRowY + 8);
-            doc.text(`$${total.toFixed(2)}`, 150, totalRowY + 8);
-
-            // Next Steps Page
-            doc.addPage();
-            addWatermark();
-            addSectionHeader('Next Steps', 30);
-
-            // Timeline
-            yPos = 50;
-            doc.setTextColor(colors.primary);
-            doc.setFontSize(14);
-            doc.text('Implementation Timeline', 20, yPos);
-
-            const timeline = [
-                { phase: 'Day 1–3', tasks: 'Contract signing & initial configuration' },
-                { phase: 'Day 4–7', tasks: 'Deployment of agents, baseline vulnerability scan' },
-                { phase: 'Weeks 2–4', tasks: 'SOC tuning, policy creation, and final testing' }
-            ];
-
-            yPos += 10;
-            doc.setTextColor(colors.text);
-            doc.setFontSize(11);
-            timeline.forEach(item => {
-                yPos += 10;
-                doc.setTextColor(colors.primary);
-                doc.text(item.phase, 20, yPos);
-                doc.setTextColor(colors.text);
-                doc.text(item.tasks, 70, yPos);
-            });
+            doc.text('Monthly Total:', 35, yPos + 8); // Adjusted x position
+            doc.text(`$${total.toFixed(2)}`, 155, yPos + 8); // Adjusted x position
 
             // Contact Information
-            yPos += 30;
-            doc.setTextColor(colors.primary);
-            doc.setFontSize(14);
-            doc.text('Contact Information', 20, yPos);
-
-            yPos += 10;
-            doc.setTextColor(colors.text);
-            doc.setFontSize(11);
+            doc.addPage();
+            addSectionHeader('Contact Information', 30);
+            doc.setTextColor(...colors.text);
+            doc.setFontSize(12);
             doc.text([
+                'For questions or to proceed with this quote, please contact:',
+                '',
                 'IP Solutions',
                 'Phone: (574) 259-6000',
                 'Email: sales@phonedatasupport.net',
                 '',
                 'This quote is valid for 30 days. Taxes not included.',
                 'Subject to MSP master service agreement.'
-            ], 20, yPos);
+            ], 20, 50);
 
             // Save the PDF
             doc.save('IP_Solutions_Security_Quote_Modern.pdf');
@@ -899,17 +858,40 @@ document.addEventListener('DOMContentLoaded', () => {
         const doc = new jsPDF();
         
         try {
-            const img = document.querySelector('.logo');
-            const canvas = document.createElement('canvas');
-            canvas.width = img.naturalWidth;
-            canvas.height = img.naturalHeight;
-            const ctx = canvas.getContext('2d');
-            ctx.drawImage(img, 0, 0);
-            const logoDataUrl = canvas.toDataURL('image/png');
+            // Create a promise to load the image
+            const loadImage = () => {
+                return new Promise((resolve, reject) => {
+                    // First try to get the image from the page
+                    const existingImg = document.querySelector('.logo');
+                    if (existingImg && existingImg.complete) {
+                        // For local development, just use the image directly
+                        resolve(existingImg);
+                        return;
+                    }
+
+                    // If that doesn't work, try loading it fresh
+                    const img = new Image();
+                    img.crossOrigin = "anonymous"; // Try with CORS
+                    img.onload = () => {
+                        resolve(img);
+                    };
+                    img.onerror = () => {
+                        console.warn('Failed to load logo, continuing without it');
+                        resolve(null);
+                    };
+                    // Try loading with timestamp to avoid caching
+                    img.src = './IPSLogo.png?' + new Date().getTime();
+                });
+            };
+
+            // Wait for image to load before generating PDF
+            const logoImg = await loadImage();
             
-            calculator.generateModernPDFContent(doc, logoDataUrl);
+            // Generate PDF with the image object directly
+            calculator.generateModernPDFContent(doc, logoImg);
         } catch (error) {
-            console.error('Error with logo:', error);
+            console.error('Error generating modern PDF:', error);
+            // Try to generate PDF without logo if there's an error
             calculator.generateModernPDFContent(doc, null);
         }
     });
