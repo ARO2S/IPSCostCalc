@@ -389,69 +389,53 @@ class PricingCalculator {
 
         // Get the logo element
         const logoImg = document.querySelector('.logo');
-        console.log('Logo element found:', logoImg);
-        console.log('Logo source:', logoImg?.src);
-        console.log('Logo dimensions:', {
-            naturalWidth: logoImg?.naturalWidth,
-            naturalHeight: logoImg?.naturalHeight,
-            displayWidth: logoImg?.width,
-            displayHeight: logoImg?.height,
-            complete: logoImg?.complete,
-            currentSrc: logoImg?.currentSrc
-        });
         
-        if (!logoImg) {
-            console.error('Logo image not found on page');
+        if (!logoImg || !logoImg.complete) {
+            console.error('Logo image not found or not loaded');
             this.generatePDFContent(doc);
             return;
         }
 
-        // Create a canvas to draw the image
-        const canvas = document.createElement('canvas');
-        const ctx = canvas.getContext('2d');
-        
-        // Set canvas size to match the logo's natural size if available, otherwise display size
-        canvas.width = logoImg.naturalWidth || logoImg.width;
-        canvas.height = logoImg.naturalHeight || logoImg.height;
-        
-        console.log('Canvas created with dimensions:', {
-            width: canvas.width,
-            height: canvas.height
-        });
+        // Wait for image to load if it hasn't
+        if (!logoImg.complete) {
+            logoImg.onload = () => this.processLogoAndGeneratePDF(doc, logoImg);
+            logoImg.onerror = () => {
+                console.error('Error loading logo image');
+                this.generatePDFContent(doc);
+            };
+            return;
+        }
 
+        this.processLogoAndGeneratePDF(doc, logoImg);
+    }
+
+    processLogoAndGeneratePDF(doc, logoImg) {
         try {
+            // Create a canvas to draw the image
+            const canvas = document.createElement('canvas');
+            const ctx = canvas.getContext('2d');
+            
+            // Set canvas size to match the logo's natural size
+            canvas.width = logoImg.naturalWidth || logoImg.width;
+            canvas.height = logoImg.naturalHeight || logoImg.height;
+            
             // Draw the image on the canvas
             ctx.drawImage(logoImg, 0, 0, canvas.width, canvas.height);
-            console.log('Image drawn to canvas');
             
-            // Convert canvas to data URL
+            // Get the image data as PNG
             const dataUrl = canvas.toDataURL('image/png');
-            console.log('Data URL generated:', dataUrl.substring(0, 100) + '...');
             
             // Calculate aspect ratio to maintain proportions
             const imgWidth = 40;  // Width in PDF units (mm)
             const imgHeight = (canvas.height * imgWidth) / canvas.width;
             
-            console.log('PDF image dimensions:', {
-                width: imgWidth,
-                height: imgHeight
-            });
-            
             // Add image to PDF
             doc.addImage(dataUrl, 'PNG', 20, 10, imgWidth, imgHeight);
-            console.log('Image added to PDF');
             
             // Generate the rest of the PDF content
             this.generatePDFContent(doc);
         } catch (error) {
-            console.error('Detailed error adding logo to PDF:', {
-                error: error.message,
-                stack: error.stack,
-                canvasWidth: canvas.width,
-                canvasHeight: canvas.height,
-                imageComplete: logoImg.complete,
-                imageSrc: logoImg.src
-            });
+            console.error('Error processing logo:', error);
             // If there's an error with the logo, still generate the PDF without it
             this.generatePDFContent(doc);
         }
@@ -473,16 +457,17 @@ class PricingCalculator {
                 if (pageNum > 1) {
                     doc.addPage();
                 }
-                // Add logo
-                const logoImg = document.querySelector('.logo');
-                if (logoImg) {
-                    try {
-                        const imgWidth = 40;
-                        const imgHeight = (logoImg.height * imgWidth) / logoImg.width;
-                        doc.addImage(logoImg.src, 'PNG', 20, 10, imgWidth, imgHeight);
-                    } catch (error) {
-                        console.error('Error adding logo:', error);
+                
+                try {
+                    // Add logo - using a simpler direct approach
+                    const logoImg = document.querySelector('.logo');
+                    if (logoImg && logoImg.complete) {
+                        const imgWidth = 40;  // Width in PDF units (mm)
+                        const imgHeight = (logoImg.naturalHeight * imgWidth) / logoImg.naturalWidth;
+                        doc.addImage(logoImg, 'PNG', 20, 10, imgWidth, imgHeight);
                     }
+                } catch (error) {
+                    console.error('Error adding logo:', error);
                 }
                 
                 // Header
