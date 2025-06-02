@@ -3,190 +3,40 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>IT Security Services Pricing Calculator - Test Version</title>
-    <link rel="stylesheet" href="styles.css">
-    <style>
-        .bolt-ons-section {
-            background: var(--card-background);
-            padding: 2rem;
-            border-radius: 12px;
-            box-shadow: var(--shadow-md);
-            margin-top: 3rem;
-            border: 1px solid var(--border-color);
-        }
-
-        .bolt-ons-grid {
-            display: grid;
-            grid-template-columns: repeat(3, 1fr);
-            gap: 1.5rem;
-            margin-top: 1.5rem;
-        }
-
-        .bolt-on-option {
-            position: relative;
-            border: 2px solid var(--border-color);
-            border-radius: 12px;
-            transition: all 0.3s ease;
-            background: var(--card-background);
-            overflow: hidden;
-        }
-
-        .bolt-on-option input[type="checkbox"] {
-            position: absolute;
-            opacity: 0;
-            width: 100%;
-            height: 100%;
-            cursor: pointer;
-            z-index: 2;
-        }
-
-        .bolt-on-option input[type="checkbox"]:disabled {
-            cursor: not-allowed;
-        }
-
-        .bolt-on-option label {
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            min-height: 80px;
-            padding: 1rem;
-            text-align: center;
-            font-weight: 500;
-            cursor: pointer;
-            transition: all 0.3s ease;
-            position: relative;
-            z-index: 1;
-        }
-
-        .bolt-on-option:not(.disabled):hover {
-            transform: translateY(-2px);
-            box-shadow: 0 4px 12px rgba(0, 255, 157, 0.2);
-            border-color: var(--primary-color);
-        }
-
-        .bolt-on-option input[type="checkbox"]:checked + label {
-            background: var(--primary-color);
-            color: var(--background-color);
-        }
-
-        .bolt-on-option.disabled {
-            opacity: 0.7;
-            background: var(--border-color);
-            cursor: not-allowed;
-        }
-
-        .bolt-on-option.disabled label {
-            cursor: not-allowed;
-        }
-
-        .included-text {
-            position: absolute;
-            bottom: 5px;
-            left: 0;
-            right: 0;
-            text-align: center;
-            font-size: 0.8rem;
-            color: var(--primary-color);
-            font-style: italic;
-        }
-
-        .remaining-options {
-            color: var(--text-secondary);
-            font-size: 1rem;
-            margin-bottom: 1rem;
-            font-style: italic;
-            text-align: center;
-            padding: 0.5rem;
-            border-bottom: 1px solid var(--border-color);
-        }
-
-        .server-backup-options {
-            margin-top: 1rem;
-            padding: 1rem;
-            background: var(--background-color);
-            border-radius: 8px;
-            border: 1px solid var(--border-color);
-        }
-
-        .server-backup-options h3 {
-            margin-bottom: 1rem;
-            color: var(--text-primary);
-            font-size: 1.1rem;
-        }
-
-        .price-note {
-            font-size: 0.9rem;
-            color: var(--text-secondary);
-        }
-
-        .price-note-text {
-            margin-top: 1rem;
-            font-size: 0.9rem;
-            color: var(--text-secondary);
-            font-style: italic;
-            text-align: center;
-        }
-
-        .total-box {
-            border: 2px solid var(--primary-color);
-            padding: 1rem 2rem;
-            display: inline-block;
-            border-radius: 8px;
-            margin: 1rem 0;
-        }
-
-        .total-box h3 {
-            margin: 0;
-            font-size: 1.5rem;
-            color: var(--text-primary);
-        }
-
-        .total-note {
-            font-size: 0.9rem;
-            color: var(--text-secondary);
-            margin-top: 0.5rem;
-        }
-
-        @media (max-width: 768px) {
-            .bolt-ons-grid {
-                grid-template-columns: repeat(2, 1fr);
-            }
-        }
-
-        @media (max-width: 480px) {
-            .bolt-ons-grid {
-                grid-template-columns: 1fr;
-            }
-        }
-    </style>
+    <title>IP Solutions CyberSecurity Estimator</title>
+    <link rel="stylesheet" href="styles-modern.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Montserrat:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
 </head>
 <body>
     <div class="container">
         <div class="logo-container">
             <img src="./IPSLogo.png" alt="IP Solutions Logo" class="logo" crossorigin="anonymous">
         </div>
-        <h1>IP Solutions CyberSecurity Estimator - Test Version</h1>
+        <h1>IP Solutions CyberSecurity Estimator</h1>
         
         <form id="pricingForm">
             <div class="input-section">
                 <h2>Environment Details</h2>
                 <div class="form-group">
-                    <label for="users">Number of Users:</label>
-                    <input type="number" id="users" name="users" min="1" required>
+                    <label for="users">Number of Users</label>
+                    <input type="number" id="users" name="users" min="1" required placeholder="Enter number of users">
                 </div>
                 <div class="form-group">
-                    <label for="devices">Number of Devices:</label>
-                    <input type="number" id="devices" name="devices" min="1" required>
+                    <label for="devices">Number of Devices</label>
+                    <input type="number" id="devices" name="devices" min="1" required placeholder="Enter number of devices">
                 </div>
                 <div class="form-group">
-                    <label for="emails">Number of Emails:</label>
-                    <input type="number" id="emails" name="emails" min="1" required>
+                    <label for="emails">Number of Emails</label>
+                    <input type="number" id="emails" name="emails" min="1" required placeholder="Enter number of emails">
                 </div>
                 <div class="form-group server-option">
                     <input type="checkbox" id="server" name="server">
                     <label for="server">Include Server Protection (EDR + SOC)</label>
                     <div class="server-disclaimer">
-                        *Base server protection includes 1 host and up to 2 VMs. Backup price determined by amount of data being stored.
+                        Base server protection includes 1 host and up to 2 VMs. Backup price determined by amount of data being stored.
                     </div>
                     <div class="server-backup-options" id="serverBackupOptions" style="display: none;">
                         <h3>Select Backup Storage Option</h3>
@@ -211,13 +61,14 @@
                     <label for="includeMsp">Include Prepaid MSP Hours</label>
                     <div class="msp-details" id="mspDetails">
                         <div class="msp-hours-input">
-                            <label for="mspHours">MSP Hours/Month:</label>
-                            <input type="number" id="mspHours" name="mspHours" min="1" step="0.5">
+                            <label for="mspHours">MSP Hours/Month</label>
+                            <input type="number" id="mspHours" name="mspHours" min="1" step="0.5" placeholder="Enter hours">
                             <span class="recommended-hours" id="recommendedHours"></span>
                         </div>
                     </div>
                 </div>
             </div>
+
             <div class="tier-section">
                 <h2>Security Tier</h2>
                 <div class="tier-cards">
@@ -312,11 +163,15 @@
                 <div class="price-note-text">* Included in Platinum tier</div>
             </div>
         </form>
+
         <div id="results" class="results-section">
             <h2>Pricing Breakdown</h2>
             <div id="breakdown"></div>
             <div id="total" class="total"></div>
-            <button id="exportPdf" class="export-button">Export Quote</button>
+            <div class="export-options">
+                <button id="exportPdf" class="export-button">Export Clean Quote</button>
+                <button id="exportModernPdf" class="export-button">Export Modern Quote</button>
+            </div>
         </div>
     </div>
     <script src="calculator.js"></script>
