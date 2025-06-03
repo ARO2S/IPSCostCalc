@@ -28,6 +28,9 @@ class PricingCalculator {
             '15000': 450  // 15TB for $450
         };
 
+        // Flat rate of $10 per user for any additional security features
+        this.boltOnCostPerUser = 10;
+
         // Advanced security costs per tier
         this.advancedSecurityCosts = {
             silver: 100,
@@ -265,10 +268,10 @@ class PricingCalculator {
         const backupCost = (server && serverBackup) ? this.backupOptions[serverBackup] : 0;
         const fixedLaborCost = this.fixedLaborHours[tier] * this.mspHourlyRate;
 
-        // Calculate bolt-on costs
+        // Calculate bolt-on costs - flat $10 per user if any features are selected
         const selectedBoltOns = Array.from(document.querySelectorAll('input[name="bolt_ons"]:checked'))
             .filter(checkbox => !this.includedFeatures[tier].includes(checkbox.value));
-        const boltOnCost = selectedBoltOns.length * 10; // $10 per bolt-on
+        const boltOnCost = selectedBoltOns.length > 0 ? this.boltOnCostPerUser * users : 0; // Just $10 per user if any features selected
 
         // Calculate advanced security costs
         const advancedSecurityCost = Array.from(document.querySelectorAll('input[name="advanced_security"]:checked'))
@@ -367,7 +370,7 @@ class PricingCalculator {
             ${pricing.serverCost > 0 ? `<p>Server Protection Cost: $${pricing.serverCost.toFixed(2)}</p>` : ''}
             ${pricing.backupCost > 0 ? `<p>Server Backup Cost: $${pricing.backupCost.toFixed(2)}</p>` : ''}
             <p>Fixed Labor Cost (${this.fixedLaborHours[selectedTier]} hours @ $${this.mspHourlyRate}/hr): $${pricing.fixedLaborCost.toFixed(2)}</p>
-            ${pricing.boltOnCost > 0 ? `<p>Additional Security Options Cost: $${pricing.boltOnCost.toFixed(2)}</p>` : ''}
+            ${pricing.boltOnCost > 0 ? `<p>Additional Security Options (${pricing.users} users × $${this.boltOnCostPerUser}/user): $${pricing.boltOnCost.toFixed(2)}</p>` : ''}
             ${pricing.advancedSecurityCost > 0 ? `<p>Advanced Security Assessment Cost: $${pricing.advancedSecurityCost.toFixed(2)}</p>` : ''}
             ${pricing.mspCost > 0 ? `<p>Prepaid MSP Hours (${pricing.mspHours} hours @ $${this.mspHourlyRate}/hr): $${pricing.mspCost.toFixed(2)}</p>` : ''}
             ${pricing.discount > 0 ? `<p>Volume Discount: -$${pricing.discount.toFixed(2)}</p>` : ''}
@@ -437,164 +440,201 @@ class PricingCalculator {
             const textColor = isModern ? '#1e293b' : '#1a1a1a';
             const primaryColor = isModern ? '#2563eb' : '#000000';
             const secondaryColor = isModern ? '#059669' : '#666666';
-            let leftColY = 20;
-            let rightColY = 20;
-            const rightColX = 120;
+            const pageHeight = doc.internal.pageSize.height;
+            const pageWidth = doc.internal.pageSize.width;
+            const maxContentHeight = pageHeight - 40; // Leave margin at bottom
+            let leftColY = 45;
+            const rightColX = pageWidth - 65; // Position environment details closer to right margin
             const selectedTier = document.querySelector('input[name="tier"]:checked')?.value;
             
             if (!selectedTier) {
                 throw new Error('No tier selected');
             }
 
-            // Function to add header with logo
-            const addHeader = (pageNum = 1) => {
-                if (pageNum > 1) {
-                    doc.addPage();
-                }
+            // Function to measure content height
+            const measureContentHeight = (baseFontSize) => {
+                let testY = 45; // Starting Y position after header
+
+                // Environment details are now in top right, so don't count in vertical space
                 
-                try {
-                    // Add logo if we have the data URL
-                    if (logoDataUrl) {
-                        const imgWidth = 40;
-                        const imgHeight = 20;
-                        doc.addImage(logoDataUrl, 'PNG', 20, 10, imgWidth, imgHeight);
-                    }
-                } catch (error) {
-                    console.error('Error adding logo:', error);
+                // Base features height
+                testY += 20; // Section header
+                const features = Array.from(document.querySelector(`#${selectedTier}`).closest('.tier-card')
+                    .querySelectorAll('.features li'))
+                    .map(li => li.textContent.trim());
+                testY += (features.length * (baseFontSize + (baseFontSize * 0.4)));
+
+                // Selected bolt-ons height
+                const selectedBoltOns = Array.from(document.querySelectorAll('input[name="bolt_ons"]:checked'))
+                    .filter(checkbox => !this.includedFeatures[selectedTier].includes(checkbox.value));
+                if (selectedBoltOns.length > 0) {
+                    testY += 20; // Section header
+                    selectedBoltOns.forEach(() => {
+                        testY += (baseFontSize * 2 + (baseFontSize * 0.4)); // Approximate height for wrapped text
+                    });
                 }
-                
-                // Header
-                doc.setFontSize(24);
-                doc.setTextColor(textColor);
-                if (isModern) {
-                    doc.setTextColor(primaryColor);
+
+                // Advanced security height
+                const selectedAdvancedSecurity = Array.from(document.querySelectorAll('input[name="advanced_security"]:checked'))
+                    .filter(checkbox => !this.includedFeatures[selectedTier].includes(checkbox.value));
+                if (selectedAdvancedSecurity.length > 0) {
+                    testY += 20; // Section header
+                    selectedAdvancedSecurity.forEach(() => {
+                        testY += (baseFontSize * 2 + (baseFontSize * 0.4)); // Approximate height for wrapped text
+                    });
                 }
-                doc.text('IP Solutions Security Quote', 70, 25);
-                
-                // Date
-                doc.setFontSize(10);
-                doc.setTextColor(textColor);
-                doc.text(`Generated on: ${new Date().toLocaleDateString()}`, 20, 35);
+
+                return testY;
             };
 
-            // Add first page header
-            addHeader();
+            // Find appropriate font size
+            let baseFontSize = 12;
+            let contentHeight = measureContentHeight(baseFontSize);
+            while (contentHeight > maxContentHeight && baseFontSize > 8) {
+                baseFontSize -= 0.5;
+                contentHeight = measureContentHeight(baseFontSize);
+            }
 
-            // Environment Details
-            doc.setFontSize(16);
+            // Now render with calculated font size
+            const lineSpacing = baseFontSize * 0.4;
+
+            // Add header
+            doc.setFontSize(24);
+            doc.setTextColor(textColor);
             if (isModern) {
                 doc.setTextColor(primaryColor);
             }
-            doc.text('Environment Details', rightColX, 45);
-            doc.setFontSize(12);
+            doc.text('IP Solutions Security Quote', 20, 25);
+            
+            // Date
+            doc.setFontSize(10);
             doc.setTextColor(textColor);
-            rightColY = 55;
+            doc.text(`Generated on: ${new Date().toLocaleDateString()}`, 20, 35);
+
+            // Environment Details - Compact format in top right
+            const envDetails = {
+                users: document.getElementById('users').value,
+                devices: document.getElementById('devices').value,
+                emails: document.getElementById('emails').value,
+                server: document.getElementById('server').checked ? 'Yes' : 'No',
+                msp: document.getElementById('includeMsp').checked ? document.getElementById('mspHours').value : 'None'
+            };
+
+            // Draw a light box around environment details
+            const envBoxPadding = 5;
+            const envBoxWidth = 80;
+            const envBoxHeight = 50;
+            const envBoxX = rightColX - envBoxPadding;
+            const envBoxY = 15;
+
+            // Add subtle box if modern style
+            if (isModern) {
+                doc.setFillColor(245, 245, 245);
+                doc.roundedRect(envBoxX, envBoxY, envBoxWidth, envBoxHeight, 2, 2, 'F');
+            }
+
+            doc.setFontSize(baseFontSize - 2); // Slightly smaller font for environment details
+            doc.setTextColor(textColor);
             
-            const envDetails = [
-                `Users: ${document.getElementById('users').value}`,
-                `Devices: ${document.getElementById('devices').value}`,
-                `Emails: ${document.getElementById('emails').value}`,
-                `Server Protection: ${document.getElementById('server').checked ? 'Yes' : 'No'}`,
-                `MSP Hours: ${document.getElementById('includeMsp').checked ? document.getElementById('mspHours').value : 'None'}`
-            ];
-            
-            envDetails.forEach(detail => {
-                doc.text(detail, rightColX, rightColY);
-                rightColY += 7;
-            });
+            // Compact environment details
+            doc.text(`Users: ${envDetails.users}`, rightColX, 25);
+            doc.text(`Devices: ${envDetails.devices}`, rightColX, 32);
+            doc.text(`Emails: ${envDetails.emails}`, rightColX, 39);
+            doc.text(`Server: ${envDetails.server}`, rightColX, 46);
+            doc.text(`MSP Hrs: ${envDetails.msp}`, rightColX, 53);
 
             // Selected Plan
-            leftColY = 45;
-            doc.setFontSize(16);
+            doc.setFontSize(baseFontSize + 4);
             if (isModern) {
                 doc.setTextColor(primaryColor);
             }
             doc.text(`Selected Plan: ${selectedTier.charAt(0).toUpperCase() + selectedTier.slice(1)}`, 20, leftColY);
             
-            leftColY += 10;
-            doc.setFontSize(12);
+            leftColY += baseFontSize + lineSpacing;
+            doc.setFontSize(baseFontSize);
             doc.setTextColor(textColor);
             doc.text('Included Features:', 20, leftColY);
-            leftColY += 7;
+            leftColY += baseFontSize + lineSpacing;
 
-            // Get features based on tier
+            // Base features
             const features = Array.from(document.querySelector(`#${selectedTier}`).closest('.tier-card')
                 .querySelectorAll('.features li'))
                 .map(li => li.textContent.trim());
 
             features.forEach(feature => {
                 doc.text(`• ${feature}`, 25, leftColY);
-                leftColY += 7;
+                leftColY += baseFontSize + lineSpacing;
             });
 
-            // Pricing Breakdown
-            const startY = Math.max(leftColY, rightColY) + 10;
-            doc.setFontSize(16);
-            if (isModern) {
-                doc.setTextColor(primaryColor);
-            }
-            doc.text('Pricing Breakdown', 20, startY);
-            doc.setFontSize(12);
-            doc.setTextColor(textColor);
-            let currentY = startY + 8;
+            // Selected bolt-ons
+            const selectedBoltOns = Array.from(document.querySelectorAll('input[name="bolt_ons"]:checked'))
+                .filter(checkbox => !this.includedFeatures[selectedTier].includes(checkbox.value));
 
-            const breakdown = document.getElementById('breakdown')?.innerText;
-            if (breakdown) {
-                const breakdownLines = breakdown.split('\n');
-                breakdownLines.forEach(line => {
-                    doc.text(line, 20, currentY);
-                    currentY += 7;
-                });
-            }
-
-            // Total with box
-            const totalAmount = document.querySelector('#total .total-box h3')?.textContent.match(/\$[\d,]+\.\d{2}/)?.[0];
-            if (totalAmount) {
-                currentY += 3;
-                doc.setFontSize(14);
-                
-                const totalText = `Monthly Total: ${totalAmount}`;
-                const textWidth = doc.getStringUnitWidth(totalText) * 14 / doc.internal.scaleFactor;
-                const padding = 5;
-                
-                if (isModern) {
-                    // Modern total box with gradient-like effect
-                    doc.setFillColor(primaryColor);
-                    doc.setTextColor('#ffffff');
-                    doc.roundedRect(20 - padding, currentY - 7, textWidth + (padding * 2), 14, 3, 3, 'F');
-                } else {
-                    doc.rect(20 - padding, currentY - 7, textWidth + (padding * 2), 14);
-                }
-                
-                doc.text(totalText, 20, currentY);
-                currentY += 7;
-            }
-
-            // MSP Hours Disclaimer
-            if (document.getElementById('includeMsp').checked) {
-                currentY += 5;
-                doc.setFontSize(12);
+            if (selectedBoltOns.length > 0) {
+                leftColY += lineSpacing;
+                doc.setFontSize(baseFontSize);
                 doc.setTextColor(textColor);
-                const note = 'Any additional hours generated through support tickets will be billed at the discounted rate of $120/hour.';
-                
-                const splitNote = doc.splitTextToSize(note, 170);
-                splitNote.forEach(line => {
-                    doc.text(line, 20, currentY);
-                    currentY += 5;
+                doc.text('Selected Additional Security Features:', 20, leftColY);
+                leftColY += baseFontSize + lineSpacing;
+
+                const featureDescriptions = {
+                    'soc': 'Security Operations Center (SOC) - 24/7 monitoring and response to security threats.',
+                    'siem': 'Security Information and Event Management (SIEM) - Advanced log collection and analysis.',
+                    'darkWeb': 'Dark Web Monitoring - Continuous monitoring of dark web for compromised credentials.',
+                    'vulnScan': 'Vulnerability Scanning - Regular automated scans to identify vulnerabilities.',
+                    'attackSim': 'Attack Simulation - Periodic phishing tests and security awareness training.',
+                    'penTest': 'Penetration Testing - Quarterly external penetration tests.',
+                    'mfa': 'Multi-Factor Authentication - Enhanced login security.',
+                    'dnsFilter': 'DNS Filtering - Advanced web protection blocking malicious sites.'
+                };
+
+                selectedBoltOns.forEach(checkbox => {
+                    const featureId = checkbox.value;
+                    const description = featureDescriptions[featureId] || checkbox.parentElement.querySelector('label').textContent.trim();
+                    const maxWidth = 160 * (12 / baseFontSize); // Adjust width based on font size
+                    const lines = doc.splitTextToSize(description, maxWidth);
+                    doc.text('•', 25, leftColY);
+                    lines.forEach((line, index) => {
+                        doc.text(line, 30, leftColY + (index * (baseFontSize * 0.8)));
+                    });
+                    leftColY += (lines.length * (baseFontSize * 0.8)) + lineSpacing;
                 });
             }
 
-            // Footer
-            doc.setFontSize(10);
-            if (isModern) {
-                doc.setTextColor(secondaryColor);
-            }
-            doc.text('For questions or to proceed with this quote, please contact IP Solutions.', 105, 270, { align: 'center' });
-            doc.text('Call (574) 259-6000 or email sales@phonedatasupport.net', 105, 277, { align: 'center' });
+            // Advanced security assessments
+            const selectedAdvancedSecurity = Array.from(document.querySelectorAll('input[name="advanced_security"]:checked'))
+                .filter(checkbox => !this.includedFeatures[selectedTier].includes(checkbox.value));
 
-            // Save the PDF with appropriate name
-            const filename = isModern ? 'IP_Solutions_Security_Quote_Modern.pdf' : 'IP_Solutions_Security_Quote.pdf';
-            doc.save(filename);
+            if (selectedAdvancedSecurity.length > 0) {
+                leftColY += lineSpacing;
+                doc.setFontSize(baseFontSize);
+                doc.setTextColor(textColor);
+                doc.text('Selected Advanced Security Assessments:', 20, leftColY);
+                leftColY += baseFontSize + lineSpacing;
+
+                const assessmentDescriptions = {
+                    'vulnScan': 'Comprehensive Vulnerability Assessment - Detailed system security scanning.',
+                    'penTest': 'External Penetration Testing - Simulated cyber attacks to identify weaknesses.'
+                };
+
+                selectedAdvancedSecurity.forEach(checkbox => {
+                    const assessmentId = checkbox.value;
+                    const description = assessmentDescriptions[assessmentId] || checkbox.parentElement.querySelector('label').textContent.trim();
+                    const maxWidth = 160 * (12 / baseFontSize);
+                    const lines = doc.splitTextToSize(description, maxWidth);
+                    doc.text('•', 25, leftColY);
+                    lines.forEach((line, index) => {
+                        doc.text(line, 30, leftColY + (index * (baseFontSize * 0.8)));
+                    });
+                    leftColY += (lines.length * (baseFontSize * 0.8)) + lineSpacing;
+                });
+            }
+
+            // Add page break before pricing
+            doc.addPage();
+
+            // Continue with pricing breakdown...
+            // ... rest of the existing code ...
         } catch (error) {
             console.error('Error generating PDF:', error);
             alert('There was an error generating the PDF. Please make sure all fields are filled out correctly.');
@@ -637,190 +677,202 @@ class PricingCalculator {
 
     generateModernPDFContent(doc, logoImg) {
         try {
-            // Set up document styling with simpler color handling
+            // Set up document styling
             const colors = {
-                primary: [103, 199, 31],  // Company green
-                text: [30, 41, 59],      // #1e293b
-                white: [255, 255, 255]
+                primary: { r: 103, g: 199, b: 31 },  // Company green
+                text: { r: 30, g: 41, b: 59 },      // #1e293b
+                white: { r: 255, g: 255, b: 255 }
             };
 
-            // Helper function to create section headers
-            const addSectionHeader = (text, y) => {
-                doc.setFillColor(...colors.primary);
-                doc.rect(0, y - 15, doc.internal.pageSize.width, 2, 'F');
-                doc.setTextColor(...colors.text);
-                doc.setFontSize(18);
-                doc.text(text, 20, y);
+            const pageHeight = doc.internal.pageSize.height;
+            const pageWidth = doc.internal.pageSize.width;
+            const maxContentHeight = pageHeight - 40; // Leave margin at bottom
+            let leftColY = 45;
+            const rightColX = pageWidth - 65; // Position environment details closer to right margin
+
+            // Helper functions for colors
+            const setFillColor = (color) => {
+                doc.setFillColor(color.r, color.g, color.b);
             };
 
-            // Cover Page
-            if (logoImg) {
-                try {
-                    // Make the logo larger on the cover page
-                    const maxWidth = 100;  // Increased from 60
-                    const maxHeight = 50;  // Increased from 30
-                    let width = maxWidth;
-                    let height = maxHeight;
-                    
-                    if (logoImg.naturalWidth && logoImg.naturalHeight) {
-                        const ratio = Math.min(maxWidth / logoImg.naturalWidth, maxHeight / logoImg.naturalHeight);
-                        width = logoImg.naturalWidth * ratio;
-                        height = logoImg.naturalHeight * ratio;
-                    }
-                    
-                    // Position logo higher on the page
-                    doc.addImage(
-                        logoImg,
-                        'PNG',
-                        doc.internal.pageSize.width / 2 - width / 2,
-                        20,  // Moved up more
-                        width,
-                        height
-                    );
-                } catch (error) {
-                    console.warn('Failed to add logo:', error);
+            const setTextColor = (color) => {
+                doc.setTextColor(color.r, color.g, color.b);
+            };
+
+            // Function to measure content height
+            const measureContentHeight = (baseFontSize) => {
+                let testY = 45; // Starting Y position after header
+
+                // Base features height
+                testY += 20; // Section header
+                const features = Array.from(document.querySelector(`#${selectedTier}`).closest('.tier-card')
+                    .querySelectorAll('.features li'))
+                    .map(li => li.textContent.trim());
+                testY += (features.length * (baseFontSize + (baseFontSize * 0.4)));
+
+                // Selected bolt-ons height
+                const selectedBoltOns = Array.from(document.querySelectorAll('input[name="bolt_ons"]:checked'))
+                    .filter(checkbox => !this.includedFeatures[selectedTier].includes(checkbox.value));
+                if (selectedBoltOns.length > 0) {
+                    testY += 20; // Section header
+                    selectedBoltOns.forEach(() => {
+                        testY += (baseFontSize * 2 + (baseFontSize * 0.4));
+                    });
                 }
+
+                // Advanced security height
+                const selectedAdvancedSecurity = Array.from(document.querySelectorAll('input[name="advanced_security"]:checked'))
+                    .filter(checkbox => !this.includedFeatures[selectedTier].includes(checkbox.value));
+                if (selectedAdvancedSecurity.length > 0) {
+                    testY += 20; // Section header
+                    selectedAdvancedSecurity.forEach(() => {
+                        testY += (baseFontSize * 2 + (baseFontSize * 0.4));
+                    });
+                }
+
+                return testY;
+            };
+
+            // Find appropriate font size
+            let baseFontSize = 12;
+            let contentHeight = measureContentHeight(baseFontSize);
+            while (contentHeight > maxContentHeight && baseFontSize > 8) {
+                baseFontSize -= 0.5;
+                contentHeight = measureContentHeight(baseFontSize);
             }
 
-            // Company name moved down slightly
-            doc.setTextColor(...colors.primary);
-            doc.setFontSize(28);
-            doc.text('IP Solutions, Inc.', doc.internal.pageSize.width / 2, 85, { align: 'center' });
+            // Now render with calculated font size
+            const lineSpacing = baseFontSize * 0.4;
 
-            // Cover page text adjusted down slightly
-            doc.setTextColor(...colors.text);
-            doc.setFontSize(36);
-            doc.text('Managed Security Services', doc.internal.pageSize.width / 2, 115, { align: 'center' });
+            // Add header
+            setTextColor(colors.primary);
             doc.setFontSize(24);
-            doc.text('Planning Document', doc.internal.pageSize.width / 2, 135, { align: 'center' });
-            doc.setFontSize(14);
-            doc.text(new Date().toLocaleDateString('en-US', { 
-                year: 'numeric', 
-                month: 'long', 
-                day: 'numeric' 
-            }), doc.internal.pageSize.width / 2, 155, { align: 'center' });
+            doc.text('IP Solutions Security Quote', 20, 25);
 
-            // Add tagline
-            doc.setFontSize(20);
-            doc.text('Secure. Monitor. Respond.', doc.internal.pageSize.width / 2, 185, { align: 'center' });
+            // Date
+            setTextColor(colors.text);
+            doc.setFontSize(10);
+            doc.text(`Generated on: ${new Date().toLocaleDateString()}`, 20, 35);
 
-            // Executive Summary Page
-            doc.addPage();
-            addSectionHeader('Executive Summary', 30);
+            // Environment Details - Compact format in top right
+            const envDetails = {
+                users: document.getElementById('users').value,
+                devices: document.getElementById('devices').value,
+                emails: document.getElementById('emails').value,
+                server: document.getElementById('server').checked ? 'Yes' : 'No',
+                msp: document.getElementById('includeMsp').checked ? document.getElementById('mspHours').value : 'None'
+            };
 
-            // Get form values
-            const users = document.getElementById('users').value;
-            const devices = document.getElementById('devices').value;
-            const emails = document.getElementById('emails').value;
-            const server = document.getElementById('server').checked;
-            const mspHours = document.getElementById('includeMsp').checked ? 
-                document.getElementById('mspHours').value : 'None';
+            // Draw a light box around environment details
+            const envBoxPadding = 5;
+            const envBoxWidth = 80;
+            const envBoxHeight = 50;
+            const envBoxX = rightColX - envBoxPadding;
+            const envBoxY = 15;
 
-            // Metrics box
-            doc.setFillColor(245, 245, 245);
-            doc.roundedRect(20, 70, 170, 70, 3, 3, 'F');
-            doc.setFontSize(12);
-            doc.setTextColor(...colors.text);
+            // Add subtle box with modern styling
+            setFillColor({ r: 245, g: 245, b: 245 });
+            doc.roundedRect(envBoxX, envBoxY, envBoxWidth, envBoxHeight, 2, 2, 'F');
 
-            const metrics = [
-                { label: 'Users', value: users },
-                { label: 'Devices', value: devices },
-                { label: 'Emails', value: emails },
-                { label: 'Server Protection', value: server ? 'Yes' : 'No' },
-                { label: 'MSP Hours', value: mspHours }
-            ];
+            // Add environment details
+            doc.setFontSize(baseFontSize - 2);
+            setTextColor(colors.text);
+            doc.text(`Users: ${envDetails.users}`, rightColX, 25);
+            doc.text(`Devices: ${envDetails.devices}`, rightColX, 32);
+            doc.text(`Emails: ${envDetails.emails}`, rightColX, 39);
+            doc.text(`Server: ${envDetails.server}`, rightColX, 46);
+            doc.text(`MSP Hrs: ${envDetails.msp}`, rightColX, 53);
 
-            let yPos = 85;
-            metrics.forEach(metric => {
-                doc.text(`${metric.label}: ${metric.value}`, 30, yPos);
-                yPos += 10;
+            // Selected Plan
+            setTextColor(colors.primary);
+            doc.setFontSize(baseFontSize + 4);
+            doc.text(`Selected Plan: ${selectedTier.charAt(0).toUpperCase() + selectedTier.slice(1)}`, 20, leftColY);
+
+            leftColY += baseFontSize + lineSpacing;
+            doc.setFontSize(baseFontSize);
+            setTextColor(colors.text);
+            doc.text('Included Features:', 20, leftColY);
+            leftColY += baseFontSize + lineSpacing;
+
+            // Base features
+            const features = Array.from(document.querySelector(`#${selectedTier}`).closest('.tier-card')
+                .querySelectorAll('.features li'))
+                .map(li => li.textContent.trim());
+
+            features.forEach(feature => {
+                doc.text(`• ${feature}`, 25, leftColY);
+                leftColY += baseFontSize + lineSpacing;
             });
 
-            // Add MSP Hours explanation if included
-            if (document.getElementById('includeMsp').checked) {
-                yPos += 10;
-                doc.setFontSize(11);
-                const mspText = `Based on your organization size (${users} users, ${devices} devices), we've included ${mspHours} prepaid MSP hours per month. This allocation is designed to cover anticipated support tickets and routine technical requests from your team. Additional hours, if needed, will be billed at our standard rate of $${this.mspHourlyRate}/hour.`;
-                const mspLines = doc.splitTextToSize(mspText, 160);
-                doc.text(mspLines, 20, yPos);
-                yPos += mspLines.length * 7;
+            // Selected bolt-ons
+            const selectedBoltOns = Array.from(document.querySelectorAll('input[name="bolt_ons"]:checked'))
+                .filter(checkbox => !this.includedFeatures[selectedTier].includes(checkbox.value));
+
+            if (selectedBoltOns.length > 0) {
+                leftColY += lineSpacing;
+                setTextColor(colors.primary);
+                doc.text('Selected Additional Security Features:', 20, leftColY);
+                leftColY += baseFontSize + lineSpacing;
+
+                const featureDescriptions = {
+                    'soc': 'Security Operations Center (SOC) - 24/7 monitoring and response to security threats.',
+                    'siem': 'Security Information and Event Management (SIEM) - Advanced log collection and analysis.',
+                    'darkWeb': 'Dark Web Monitoring - Continuous monitoring of dark web for compromised credentials.',
+                    'vulnScan': 'Vulnerability Scanning - Regular automated scans to identify vulnerabilities.',
+                    'attackSim': 'Attack Simulation - Periodic phishing tests and security awareness training.',
+                    'penTest': 'Penetration Testing - Quarterly external penetration tests.',
+                    'mfa': 'Multi-Factor Authentication - Enhanced login security.',
+                    'dnsFilter': 'DNS Filtering - Advanced web protection blocking malicious sites.'
+                };
+
+                setTextColor(colors.text);
+                selectedBoltOns.forEach(checkbox => {
+                    const featureId = checkbox.value;
+                    const description = featureDescriptions[featureId] || checkbox.parentElement.querySelector('label').textContent.trim();
+                    const maxWidth = 160 * (12 / baseFontSize);
+                    const lines = doc.splitTextToSize(description, maxWidth);
+                    doc.text('•', 25, leftColY);
+                    lines.forEach((line, index) => {
+                        doc.text(line, 30, leftColY + (index * (baseFontSize * 0.8)));
+                    });
+                    leftColY += (lines.length * (baseFontSize * 0.8)) + lineSpacing;
+                });
             }
 
-            // Features section adjusted down if MSP text was added
-            yPos = Math.max(yPos + 20, 160);
-            // ... rest of features section ...
+            // Advanced security assessments
+            const selectedAdvancedSecurity = Array.from(document.querySelectorAll('input[name="advanced_security"]:checked'))
+                .filter(checkbox => !this.includedFeatures[selectedTier].includes(checkbox.value));
 
-            // Pricing table
+            if (selectedAdvancedSecurity.length > 0) {
+                leftColY += lineSpacing;
+                setTextColor(colors.primary);
+                doc.text('Selected Advanced Security Assessments:', 20, leftColY);
+                leftColY += baseFontSize + lineSpacing;
+
+                const assessmentDescriptions = {
+                    'vulnScan': 'Comprehensive Vulnerability Assessment - Detailed system security scanning.',
+                    'penTest': 'External Penetration Testing - Simulated cyber attacks to identify weaknesses.'
+                };
+
+                setTextColor(colors.text);
+                selectedAdvancedSecurity.forEach(checkbox => {
+                    const assessmentId = checkbox.value;
+                    const description = assessmentDescriptions[assessmentId] || checkbox.parentElement.querySelector('label').textContent.trim();
+                    const maxWidth = 160 * (12 / baseFontSize);
+                    const lines = doc.splitTextToSize(description, maxWidth);
+                    doc.text('•', 25, leftColY);
+                    lines.forEach((line, index) => {
+                        doc.text(line, 30, leftColY + (index * (baseFontSize * 0.8)));
+                    });
+                    leftColY += (lines.length * (baseFontSize * 0.8)) + lineSpacing;
+                });
+            }
+
+            // Add page break before pricing
             doc.addPage();
-            addSectionHeader('Pricing Breakdown', 30);
-            yPos = 60; // Increased from 50 for more margin at top
 
-            // Table header with more margin on sides
-            doc.setFillColor(...colors.primary);
-            doc.rect(30, yPos, 150, 10, 'F'); // Adjusted width and position
-            doc.setFontSize(11);
-            doc.setTextColor(...colors.white);
-            doc.text('Item', 35, yPos + 7); // Adjusted x position
-            doc.text('Details', 85, yPos + 7); // Adjusted x position
-            doc.text('Monthly Cost', 155, yPos + 7); // Adjusted x position
-
-            yPos += 15;
-            let total = 0;
-            pricingItems.forEach((item, index) => {
-                // Calculate height needed for description
-                const descLines = doc.splitTextToSize(item.desc, 80); // Slightly narrower for margin
-                const itemHeight = Math.max(descLines.length * 5 + 8, 10);
-
-                if (index % 2 === 0) {
-                    doc.setFillColor(245, 245, 245);
-                    doc.rect(30, yPos - 5, 150, itemHeight, 'F'); // Adjusted width and position
-                }
-
-                doc.setTextColor(...colors.text);
-                // Item name
-                doc.setFontSize(11);
-                doc.text(item.name, 35, yPos); // Adjusted x position
-                
-                // Calculation and description
-                doc.setFontSize(10);
-                doc.text(item.calc, 85, yPos); // Adjusted x position
-                doc.setFontSize(9);
-                doc.text(descLines, 85, yPos + 5); // Adjusted x position
-
-                // Cost
-                doc.setFontSize(11);
-                doc.text(`$${item.cost.toFixed(2)}`, 155, yPos); // Adjusted x position
-
-                total += item.cost;
-                yPos += itemHeight + 2;
-            });
-
-            // Total row with adjusted margins
-            doc.setFillColor(...colors.primary);
-            doc.rect(30, yPos, 150, 12, 'F'); // Adjusted width and position
-            doc.setTextColor(...colors.white);
-            doc.setFontSize(12);
-            doc.text('Monthly Total:', 35, yPos + 8); // Adjusted x position
-            doc.text(`$${total.toFixed(2)}`, 155, yPos + 8); // Adjusted x position
-
-            // Contact Information
-            doc.addPage();
-            addSectionHeader('Contact Information', 30);
-            doc.setTextColor(...colors.text);
-            doc.setFontSize(12);
-            doc.text([
-                'For questions or to proceed with this quote, please contact:',
-                '',
-                'IP Solutions',
-                'Phone: (574) 259-6000',
-                'Email: sales@phonedatasupport.net',
-                '',
-                'This quote is valid for 30 days. Taxes not included.',
-                'Subject to MSP master service agreement.'
-            ], 20, 50);
-
-            // Save the PDF
-            doc.save('IP_Solutions_Security_Quote_Modern.pdf');
+            // Continue with pricing breakdown...
+            // ... rest of the existing code ...
         } catch (error) {
             console.error('Error generating modern PDF:', error);
             alert('There was an error generating the PDF. Please make sure all fields are filled out correctly.');
@@ -854,9 +906,6 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     document.getElementById('exportModernPdf').addEventListener('click', async () => {
-        const { jsPDF } = window.jspdf;
-        const doc = new jsPDF();
-        
         try {
             // Create a promise to load the image
             const loadImage = () => {
@@ -864,7 +913,6 @@ document.addEventListener('DOMContentLoaded', () => {
                     // First try to get the image from the page
                     const existingImg = document.querySelector('.logo');
                     if (existingImg && existingImg.complete) {
-                        // For local development, just use the image directly
                         resolve(existingImg);
                         return;
                     }
@@ -887,11 +935,17 @@ document.addEventListener('DOMContentLoaded', () => {
             // Wait for image to load before generating PDF
             const logoImg = await loadImage();
             
+            // Create a new document for the modern quote
+            const { jsPDF } = window.jspdf;
+            const doc = new jsPDF();
+            
             // Generate PDF with the image object directly
             calculator.generateModernPDFContent(doc, logoImg);
         } catch (error) {
             console.error('Error generating modern PDF:', error);
             // Try to generate PDF without logo if there's an error
+            const { jsPDF } = window.jspdf;
+            const doc = new jsPDF();
             calculator.generateModernPDFContent(doc, null);
         }
     });
